@@ -11,6 +11,10 @@
 
 #include "board.h"
 
+#if BOARD_USE_EMOTION_IMAGES
+#include "emotion_images.h"
+#endif
+
 #define TAG "LcdDisplay"
 
 // Color definitions for dark theme
@@ -579,6 +583,13 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_color(emotion_label_, current_theme.text, 0);
     lv_label_set_text(emotion_label_, FONT_AWESOME_AI_CHIP);
 
+#if BOARD_USE_EMOTION_IMAGES
+    emotion_image_ = lv_image_create(content_);
+    lv_obj_set_size(emotion_image_, 128, 128);
+    lv_image_set_src(emotion_image_, &emotion_neutral);
+    lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+#endif
+
     chat_message_label_ = lv_label_create(content_);
     lv_label_set_text(chat_message_label_, "");
     lv_obj_set_width(chat_message_label_, LV_HOR_RES * 0.9); // 限制宽度为屏幕宽度的 90%
@@ -637,6 +648,22 @@ void LcdDisplay::SetupUI() {
 #endif
 
 void LcdDisplay::SetEmotion(const char* emotion) {
+#if BOARD_USE_EMOTION_IMAGES
+    if (emotion_image_ != nullptr) {
+        DisplayLockGuard lock(this);
+        const lv_image_dsc_t* img = FindEmotionImage(emotion);
+        if (img == nullptr) {
+            img = &emotion_neutral;
+        }
+        lv_image_set_src(emotion_image_, img);
+        lv_obj_clear_flag(emotion_image_, LV_OBJ_FLAG_HIDDEN);
+        if (emotion_label_ != nullptr) {
+            lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+#endif
+
     struct Emotion {
         const char* icon;
         const char* text;
@@ -687,9 +714,15 @@ void LcdDisplay::SetEmotion(const char* emotion) {
 
 void LcdDisplay::SetIcon(const char* icon) {
     DisplayLockGuard lock(this);
+#if BOARD_USE_EMOTION_IMAGES
+    if (emotion_image_ != nullptr) {
+        lv_obj_add_flag(emotion_image_, LV_OBJ_FLAG_HIDDEN);
+    }
+#endif
     if (emotion_label_ == nullptr) {
         return;
     }
+    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
     lv_label_set_text(emotion_label_, icon);
 }

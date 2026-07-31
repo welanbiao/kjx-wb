@@ -143,6 +143,14 @@ file(GLOB BOARD_SOURCES
 )
 list(APPEND SOURCES ${BOARD_SOURCES})
 
+if(CONFIG_BOARD_TYPE_ESP32_S3_WRIST_GEM)
+    file(GLOB WRIST_GEM_EMOTION_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/boards/esp32-s3-wrist-gem/emotions/generated/*.c
+    )
+    list(APPEND SOURCES ${WRIST_GEM_EMOTION_SOURCES})
+    list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/boards/esp32-s3-wrist-gem/emotions/generated)
+endif()
+
 if(CONFIG_CONNECTION_TYPE_MQTT_UDP)
     list(APPEND SOURCES "protocols/mqtt_protocol.cc")
 elseif(CONFIG_CONNECTION_TYPE_WEBSOCKET)
@@ -192,8 +200,12 @@ idf_component_register(SRCS ${SOURCES}
 if(NOT BOARD_NAME)
     set(BOARD_NAME ${BOARD_TYPE})
 endif()
+set(BOARD_COMPILE_DEFS BOARD_TYPE=\"${BOARD_TYPE}\" BOARD_NAME=\"${BOARD_NAME}\")
+if(CONFIG_BOARD_TYPE_ESP32_S3_WRIST_GEM)
+    list(APPEND BOARD_COMPILE_DEFS BOARD_USE_EMOTION_IMAGES=1)
+endif()
 target_compile_definitions(${COMPONENT_LIB}
-                    PRIVATE BOARD_TYPE=\"${BOARD_TYPE}\" BOARD_NAME=\"${BOARD_NAME}\"
+                    PRIVATE ${BOARD_COMPILE_DEFS}
                     )
 
 # 添加生成规则

@@ -1,0 +1,17 @@
+tmp/
+components/
+managed_components/
+build/
+.vscode/
+.devcontainer/
+sdkconfig.old
+sdkconfig
+dependencies.lock
+.env
+releases/
+release/
+release.rar
+main/assets/lang_config.h
+.DS_Store
+.claude/
+.chat/

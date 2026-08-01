@@ -29,6 +29,18 @@
 #define DARK_LOW_BATTERY_COLOR      lv_color_hex(0xFF0000)     // Red for dark mode
 
 // Color definitions for light theme
+#if BOARD_USE_EMOTION_IMAGES
+// Match emotion portrait cream background (#FBEEDE from PNG corners)
+#define LIGHT_BACKGROUND_COLOR       lv_color_hex(0xFBEEDE)
+#define LIGHT_TEXT_COLOR             lv_color_hex(0x3D2B1F)
+#define LIGHT_CHAT_BACKGROUND_COLOR  lv_color_hex(0xFBEEDE)
+#define LIGHT_USER_BUBBLE_COLOR      lv_color_hex(0x95EC69)
+#define LIGHT_ASSISTANT_BUBBLE_COLOR lv_color_hex(0xFBEEDE)
+#define LIGHT_SYSTEM_BUBBLE_COLOR    lv_color_hex(0xF5E4D0)
+#define LIGHT_SYSTEM_TEXT_COLOR      lv_color_hex(0x666666)
+#define LIGHT_BORDER_COLOR           lv_color_hex(0xF5E4D0)
+#define LIGHT_LOW_BATTERY_COLOR      lv_color_black()
+#else
 #define LIGHT_BACKGROUND_COLOR       lv_color_white()           // White background
 #define LIGHT_TEXT_COLOR             lv_color_black()           // Black text
 #define LIGHT_CHAT_BACKGROUND_COLOR  lv_color_hex(0xE0E0E0)     // Light gray background
@@ -38,6 +50,7 @@
 #define LIGHT_SYSTEM_TEXT_COLOR      lv_color_hex(0x666666)     // Dark gray text
 #define LIGHT_BORDER_COLOR           lv_color_hex(0xE0E0E0)     // Light gray border
 #define LIGHT_LOW_BATTERY_COLOR      lv_color_black()           // Black for light mode
+#endif
 
 // Theme color structure
 struct ThemeColors {
@@ -91,8 +104,13 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
     width_ = width;
     height_ = height;
 
-    // draw white
-    std::vector<uint16_t> buffer(width_, 0xFFFF);
+#if BOARD_USE_EMOTION_IMAGES
+    // Cream background matching emotion portraits (#FBEEDE -> RGB565, SPI byte-swapped)
+    constexpr uint16_t kBootFill = 0x7BFF;
+#else
+    constexpr uint16_t kBootFill = 0xFFFF;
+#endif
+    std::vector<uint16_t> buffer(width_, kBootFill);
     for (int y = 0; y < height_; y++) {
         esp_lcd_panel_draw_bitmap(panel_, 0, y, width_, y + 1, buffer.data());
     }

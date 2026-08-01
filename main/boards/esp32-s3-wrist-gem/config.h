@@ -10,19 +10,16 @@
 /**< Pixel-Led */
 #define BUILTIN_LED_GPIO            GPIO_NUM_2
 
-/**< Audio — IU7191T I2S Class-D + PDM mic (custom board, not official wristgem) */
+/**< Audio — IU7191T I2S Class-D + PDM mic (custom board)
+ *  SD pin is hardwired always-on (Mix); do not drive SD from GPIO. */
 // PDM Microphone
 #define AUDIO_I2S_MIC_GPIO_SCK      GPIO_NUM_39
 #define AUDIO_I2S_MIC_GPIO_DIN      GPIO_NUM_40
 // IU7191: SDATA / SCLK / LRCK
-#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42   // → SDATA (pin8)
-#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_41   // → SCLK  (pin6)
-#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_48   // → LRCK  (pin7)
-// IU7191 SD (pin4): 0~0.2V=shutdown, 1.2~1.5V=L, 1.6~1.9V=R, >2V=Mix
-// GPIO 3.3V high → Mix; GAIN(pin5) is hardwired on PCB (not GPIO)
-#define AUDIO_SPKR_ENABLE           GPIO_NUM_46
-// Amp needs T_ST after SD release (datasheet typ. 7ms)
-#define AUDIO_SPKR_ENABLE_DELAY_MS  20
+#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42   // → SDATA
+#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_41   // → SCLK
+#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_48   // → LRCK
+
 
 /**< Button */
 #define BOOT_BUTTON_GPIO            GPIO_NUM_0

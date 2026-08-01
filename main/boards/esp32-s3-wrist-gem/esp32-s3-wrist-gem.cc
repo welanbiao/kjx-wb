@@ -16,10 +16,7 @@
 #include <wifi_station.h>
 
 #include "axp2101.h"
-#include <driver/gpio.h>
 #include <driver/i2c_master.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include "font_awesome_symbols.h"
 #include "lcd_touch.h"
 
@@ -53,27 +50,6 @@ public:
 
         WriteReg(0x24, 0x01); // set Vsys for PWROFF threshold to 3.2V (default - 2.6V and kill battery)
         WriteReg(0x50, 0x14); // set TS pin to EXTERNAL input (not temperature)
-    }
-};
-
-class WristGemAudioCodec : public NoAudioCodecSimplexPdm {
-public:
-    using NoAudioCodecSimplexPdm::NoAudioCodecSimplexPdm;
-
-    void EnableOutput(bool enable) override {
-        if (enable == output_enabled_) {
-            return;
-        }
-        if (enable) {
-            // Datasheet: release SD only after I2S clocks run (Start() enables TX first).
-            // GPIO 3.3V on SD → Mix (L+R); Write() duplicates mono to L=R.
-            gpio_set_level(AUDIO_SPKR_ENABLE, 1);
-            vTaskDelay(pdMS_TO_TICKS(AUDIO_SPKR_ENABLE_DELAY_MS));
-        } else {
-            // SD 0~0.2V = shutdown (idle power save)
-            gpio_set_level(AUDIO_SPKR_ENABLE, 0);
-        }
-        NoAudioCodecSimplexPdm::EnableOutput(enable);
     }
 };
 
@@ -201,24 +177,6 @@ private:
         display_->InitializeTouch(i2c_bus_);
     }
 
-    // IU7191 SD pin only — keep shutdown until AudioCodec::Start() enables I2S then EnableOutput()
-    void InitializeSpeakerAmplifier() {
-        ESP_LOGI(TAG, "Init IU7191 SD pin (GPIO%d), hold shutdown until I2S ready", (int)AUDIO_SPKR_ENABLE);
-
-        gpio_config_t config = {};
-        config.pin_bit_mask = BIT64(AUDIO_SPKR_ENABLE);
-        config.mode = GPIO_MODE_OUTPUT;
-        config.pull_up_en = GPIO_PULLUP_DISABLE;
-        config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-        config.intr_type = GPIO_INTR_DISABLE;
-#if SOC_GPIO_SUPPORT_PIN_HYS_FILTER
-        config.hys_ctrl_mode = GPIO_HYS_SOFT_ENABLE;
-#endif
-        gpio_config(&config);
-        // 0~0.2V = shutdown; do not enable until I2S BCLK/LRCK are running
-        gpio_set_level(AUDIO_SPKR_ENABLE, 0);
-    }
-
     // 物联网初始化，添加对 AI 可见设备
     void InitializeIot() {
         auto& thing_manager = iot::ThingManager::GetInstance();
@@ -236,7 +194,6 @@ public:
         InitializeI2c();
         pmic_ = new Pmic(i2c_bus_, AXP2101_I2C_ADDR);
 
-        InitializeSpeakerAmplifier();
         InitializeSpi();
         InitializeButtons();
         InitializeTouchDisplay();
@@ -251,9 +208,10 @@ public:
     }
 
     virtual AudioCodec *GetAudioCodec() override {
-        static WristGemAudioCodec audio_codec(
+        // IU7191T: Philips I2S stereo L=R (SD hardwired Mix); PDM mic on 39/40
+        static NoAudioCodecSimplexPdm audio_codec(
             AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
-            AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK, AUDIO_I2S_SPK_GPIO_DOUT, 
+            AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK, AUDIO_I2S_SPK_GPIO_DOUT,
             AUDIO_I2S_MIC_GPIO_SCK, AUDIO_I2S_MIC_GPIO_DIN
         );
         return &audio_codec;

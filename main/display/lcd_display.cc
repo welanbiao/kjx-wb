@@ -34,11 +34,11 @@
 #define LIGHT_BACKGROUND_COLOR       lv_color_hex(0xFBEEDE)
 #define LIGHT_TEXT_COLOR             lv_color_hex(0x3D2B1F)
 #define LIGHT_CHAT_BACKGROUND_COLOR  lv_color_hex(0xFBEEDE)
-#define LIGHT_USER_BUBBLE_COLOR      lv_color_hex(0x95EC69)
+#define LIGHT_USER_BUBBLE_COLOR      lv_color_hex(0xF5E4D0)
 #define LIGHT_ASSISTANT_BUBBLE_COLOR lv_color_hex(0xFBEEDE)
-#define LIGHT_SYSTEM_BUBBLE_COLOR    lv_color_hex(0xF5E4D0)
-#define LIGHT_SYSTEM_TEXT_COLOR      lv_color_hex(0x666666)
-#define LIGHT_BORDER_COLOR           lv_color_hex(0xF5E4D0)
+#define LIGHT_SYSTEM_BUBBLE_COLOR    lv_color_hex(0xFBEEDE)
+#define LIGHT_SYSTEM_TEXT_COLOR      lv_color_hex(0x3D2B1F)
+#define LIGHT_BORDER_COLOR           lv_color_hex(0xFBEEDE)
 #define LIGHT_LOW_BATTERY_COLOR      lv_color_black()
 #else
 #define LIGHT_BACKGROUND_COLOR       lv_color_white()           // White background
@@ -591,6 +591,8 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_flex_grow(content_, 1);
     lv_obj_set_style_pad_all(content_, 5, 0);
     lv_obj_set_style_bg_color(content_, current_theme.chat_background, 0);
+    lv_obj_set_style_bg_opa(content_, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(content_, 0, 0);
     lv_obj_set_style_border_color(content_, current_theme.border, 0); // Border color for content
 
     lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN); // 垂直布局（从上到下）
@@ -614,6 +616,13 @@ void LcdDisplay::SetupUI() {
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP); // 设置为自动换行模式
     lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0); // 设置文本居中对齐
     lv_obj_set_style_text_color(chat_message_label_, current_theme.text, 0);
+#if BOARD_USE_EMOTION_IMAGES
+    // Subtitle area: same cream as emotion portraits (no gray/white box)
+    lv_obj_set_style_bg_color(chat_message_label_, current_theme.chat_background, 0);
+    lv_obj_set_style_bg_opa(chat_message_label_, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(chat_message_label_, 0, 0);
+    lv_obj_set_style_pad_all(chat_message_label_, 4, 0);
+#endif
 
     /* Status bar */
     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
@@ -921,6 +930,10 @@ void LcdDisplay::SetTheme(const std::string& theme_name) {
         // Simple UI mode - just update the main chat message
         if (chat_message_label_ != nullptr) {
             lv_obj_set_style_text_color(chat_message_label_, current_theme.text, 0);
+#if BOARD_USE_EMOTION_IMAGES
+            lv_obj_set_style_bg_color(chat_message_label_, current_theme.chat_background, 0);
+            lv_obj_set_style_bg_opa(chat_message_label_, LV_OPA_COVER, 0);
+#endif
         }
         
         if (emotion_label_ != nullptr) {

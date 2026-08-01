@@ -10,19 +10,15 @@
 /**< Pixel-Led */
 #define BUILTIN_LED_GPIO            GPIO_NUM_2
 
-/**< Audio — IU7191T I2S Class-D (see datasheet typical app) */
-// PDM Microphone
+/**< Audio — board BOM: MSM261 (I2S mic) + MAX98357 (I2S Class-D)
+ *  Match official dotnfc/xiaozhi-esp32 wristgem pinmap.
+ *  MAX98357 SD is hardwired on PCB (do NOT drive GPIO46 as shutdown). */
+#define AUDIO_I2S_MIC_GPIO_WS       GPIO_NUM_38
 #define AUDIO_I2S_MIC_GPIO_SCK      GPIO_NUM_39
 #define AUDIO_I2S_MIC_GPIO_DIN      GPIO_NUM_40
-// IU7191: SDATA / SCLK / LRCK
-#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42   // → SDATA (pin8)
-#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_41   // → SCLK  (pin6)
-#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_48   // → LRCK  (pin7)
-// IU7191 SD (pin4): 0~0.2V=shutdown, 1.2~1.5V=L, 1.6~1.9V=R, >2V=Mix
-// GPIO 3.3V high → Mix; GAIN(pin5) is hardwired on PCB (not GPIO)
-#define AUDIO_SPKR_ENABLE           GPIO_NUM_46
-// Amp needs T_ST after SD release (datasheet typ. 7ms)
-#define AUDIO_SPKR_ENABLE_DELAY_MS  20
+#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42
+#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_41
+#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_48
 
 /**< Button */
 #define BOOT_BUTTON_GPIO            GPIO_NUM_0

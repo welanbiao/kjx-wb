@@ -11,8 +11,6 @@
 #include "assets/lang_config.h"
 
 #include <cstring>
-#include <cmath>
-#include <vector>
 #include <esp_log.h>
 #include <esp_heap_caps.h>
 #include <cJSON.h>
@@ -345,26 +343,6 @@ void Application::Start() {
         reference_resampler_.Configure(codec->input_sample_rate(), 16000);
     }
     codec->Start();
-
-#if defined(BOARD_NAME)
-    // Wrist-gem bring-up: force audible level + direct 1kHz beep (bypasses Opus)
-    if (strcmp(BOARD_NAME, "esp32-s3-wrist-gem") == 0) {
-        codec->SetOutputVolume(100);
-        const int sr = codec->output_sample_rate();
-        const int total = sr;  // 1 second
-        std::vector<int16_t> tone(240);
-        for (int off = 0; off < total; off += 240) {
-            int n = (total - off) > 240 ? 240 : (total - off);
-            tone.resize(n);
-            for (int i = 0; i < n; i++) {
-                float t = static_cast<float>(off + i) / static_cast<float>(sr);
-                tone[i] = static_cast<int16_t>(12000.0f * sinf(2.0f * 3.1415926f * 1000.0f * t));
-            }
-            codec->OutputData(tone);
-        }
-        ESP_LOGI(TAG, "Wrist-gem diagnostic 1kHz beep done, volume=%d", codec->output_volume());
-    }
-#endif
 
     xTaskCreatePinnedToCore([](void* arg) {
         Application* app = (Application*)arg;

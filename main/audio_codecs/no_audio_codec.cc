@@ -295,8 +295,8 @@ NoAudioCodecSimplexPdm::NoAudioCodecSimplexPdm(int input_sample_rate, int output
 				.ext_clk_freq_hz = 0,
 			#endif
         },
-        // IU7191: standard Philips I2S. Stereo L=R for hardwired Mix SD.
-        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+        // IU7191: Philips I2S 32-bit slots (MSB left-aligned), stereo L=R for Mix SD.
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO),
         .gpio_cfg = {
             .mclk = I2S_GPIO_UNUSED,
             .bclk = spk_bclk,
@@ -329,28 +329,29 @@ NoAudioCodecSimplexPdm::NoAudioCodecSimplexPdm(int input_sample_rate, int output
 #else
     ESP_LOGE(TAG, "PDM is not supported");
 #endif
-    ESP_LOGI(TAG, "Simplex channels created (I2S Philips 16-bit stereo + PDM mic)");
+    ESP_LOGI(TAG, "Simplex channels created (I2S Philips 32-bit stereo + PDM mic)");
 }
 
 int NoAudioCodecSimplexPdm::Write(const int16_t* data, int samples) {
-    std::vector<int16_t> stereo(samples * 2);
+    // 32-bit Philips slots: PCM in high 16 bits (left-aligned), L=R
+    std::vector<int32_t> stereo(samples * 2);
     int32_t volume_factor = pow(double(output_volume_) / 100.0, 2) * 65536;
     for (int i = 0; i < samples; i++) {
         int64_t temp = int64_t(data[i]) * volume_factor;
-        int32_t sample = static_cast<int32_t>(temp >> 16);
-        if (sample > INT16_MAX) {
-            sample = INT16_MAX;
-        } else if (sample < INT16_MIN) {
-            sample = INT16_MIN;
+        if (temp > INT32_MAX) {
+            temp = INT32_MAX;
+        } else if (temp < INT32_MIN) {
+            temp = INT32_MIN;
         }
-        stereo[2 * i] = static_cast<int16_t>(sample);
-        stereo[2 * i + 1] = static_cast<int16_t>(sample);
+        int32_t sample = static_cast<int32_t>(temp);
+        stereo[2 * i] = sample;
+        stereo[2 * i + 1] = sample;
     }
 
     size_t bytes_written = 0;
-    ESP_ERROR_CHECK(i2s_channel_write(tx_handle_, stereo.data(), stereo.size() * sizeof(int16_t),
+    ESP_ERROR_CHECK(i2s_channel_write(tx_handle_, stereo.data(), stereo.size() * sizeof(int32_t),
                                        &bytes_written, portMAX_DELAY));
-    return static_cast<int>(bytes_written / sizeof(int16_t) / 2);
+    return static_cast<int>(bytes_written / sizeof(int32_t) / 2);
 }
 
 int NoAudioCodec::Write(const int16_t* data, int samples) {

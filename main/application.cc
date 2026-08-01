@@ -635,9 +635,10 @@ void Application::OnAudioOutput() {
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_output_time_).count();
             // Add safety check to avoid overflow (e.g., when last_output_time_ is not properly initialized)
             if (duration > 0 && duration < 3600) {
-                if (duration > max_silence_seconds) {
+                if (duration > max_silence_seconds && codec->output_enabled()) {
                     ESP_LOGW(TAG, "No audio data for %d seconds, disabling output", (int)duration);
                     codec->EnableOutput(false);
+                    last_output_time_ = now;
                 }
             } else {
                 // Only log once when duration is invalid, then reset

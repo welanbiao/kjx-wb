@@ -15,10 +15,10 @@
 // PDM Microphone
 #define AUDIO_I2S_MIC_GPIO_SCK      GPIO_NUM_39
 #define AUDIO_I2S_MIC_GPIO_DIN      GPIO_NUM_40
-// IU7191: SDATA / SCLK / LRCK
-#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42   // → SDATA
-#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_41   // → SCLK
-#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_48   // → LRCK
+// IU7191: verified on PCB — GPIO48→pin6(SCLK), GPIO41→pin7(LRCK), GPIO42→pin8(SDATA)
+#define AUDIO_I2S_SPK_GPIO_DOUT     GPIO_NUM_42   // → SDATA (pin8)
+#define AUDIO_I2S_SPK_GPIO_BCLK     GPIO_NUM_48   // → SCLK  (pin6)
+#define AUDIO_I2S_SPK_GPIO_LRCK     GPIO_NUM_41   // → LRCK  (pin7)
 
 
 /**< Button */

@@ -144,7 +144,8 @@ file(GLOB BOARD_SOURCES
 list(APPEND SOURCES ${BOARD_SOURCES})
 
 if(CONFIG_BOARD_TYPE_ESP32_S3_WRIST_GEM)
-    file(GLOB WRIST_GEM_EMOTION_SOURCES
+    # CONFIGURE_DEPENDS: pick up newly generated emotion_*.c (e.g. speak frames)
+    file(GLOB WRIST_GEM_EMOTION_SOURCES CONFIGURE_DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/boards/esp32-s3-wrist-gem/emotions/generated/*.c
     )
     list(APPEND SOURCES ${WRIST_GEM_EMOTION_SOURCES})

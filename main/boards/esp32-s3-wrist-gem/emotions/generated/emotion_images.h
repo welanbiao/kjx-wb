@@ -2,11 +2,15 @@
 
 #include <lvgl.h>
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 const lv_image_dsc_t* FindEmotionImage(const char* emotion);
+size_t GetSpeakingFrameCount(void);
+const lv_image_dsc_t* GetSpeakingFrame(size_t index);
 
 extern const lv_image_dsc_t emotion_neutral;
 extern const lv_image_dsc_t emotion_happy;
@@ -29,6 +33,10 @@ extern const lv_image_dsc_t emotion_confident;
 extern const lv_image_dsc_t emotion_sleepy;
 extern const lv_image_dsc_t emotion_silly;
 extern const lv_image_dsc_t emotion_confused;
+extern const lv_image_dsc_t emotion_speak_1;
+extern const lv_image_dsc_t emotion_speak_2;
+extern const lv_image_dsc_t emotion_speak_3;
+extern const lv_image_dsc_t emotion_speak_4;
 
 #ifdef __cplusplus
 }

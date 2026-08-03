@@ -248,6 +248,9 @@ RgbLcdDisplay::RgbLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
 }
 
 LcdDisplay::~LcdDisplay() {
+#if BOARD_USE_EMOTION_IMAGES
+    StopSpeakingEmotionAnim();
+#endif
     // 然后再清理 LVGL 对象
     if (content_ != nullptr) {
         lv_obj_del(content_);
@@ -674,10 +677,54 @@ void LcdDisplay::SetupUI() {
 }
 #endif
 
+#if BOARD_USE_EMOTION_IMAGES
+void LcdDisplay::SpeakingEmotionAnimTimerCb(lv_timer_t* timer) {
+    auto* self = static_cast<LcdDisplay*>(lv_timer_get_user_data(timer));
+    if (self == nullptr || self->emotion_image_ == nullptr || !self->emotion_speaking_anim_) {
+        return;
+    }
+    size_t count = GetSpeakingFrameCount();
+    if (count == 0) {
+        return;
+    }
+    self->emotion_anim_frame_ = (self->emotion_anim_frame_ + 1) % static_cast<unsigned>(count);
+    lv_image_set_src(self->emotion_image_, GetSpeakingFrame(self->emotion_anim_frame_));
+}
+
+void LcdDisplay::StopSpeakingEmotionAnim() {
+    if (emotion_anim_timer_ != nullptr) {
+        lv_timer_del(emotion_anim_timer_);
+        emotion_anim_timer_ = nullptr;
+    }
+    emotion_speaking_anim_ = false;
+    emotion_anim_frame_ = 0;
+}
+
+void LcdDisplay::StartSpeakingEmotionAnim() {
+    StopSpeakingEmotionAnim();
+    if (emotion_image_ == nullptr) {
+        return;
+    }
+    emotion_speaking_anim_ = true;
+    emotion_anim_frame_ = 0;
+    lv_image_set_src(emotion_image_, GetSpeakingFrame(0));
+    lv_obj_clear_flag(emotion_image_, LV_OBJ_FLAG_HIDDEN);
+    if (emotion_label_ != nullptr) {
+        lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+    emotion_anim_timer_ = lv_timer_create(SpeakingEmotionAnimTimerCb, 120, this);
+}
+#endif
+
 void LcdDisplay::SetEmotion(const char* emotion) {
 #if BOARD_USE_EMOTION_IMAGES
     if (emotion_image_ != nullptr) {
         DisplayLockGuard lock(this);
+        if (emotion != nullptr && strcmp(emotion, "speaking") == 0) {
+            StartSpeakingEmotionAnim();
+            return;
+        }
+        StopSpeakingEmotionAnim();
         const lv_image_dsc_t* img = FindEmotionImage(emotion);
         if (img == nullptr) {
             img = &emotion_neutral;
@@ -742,6 +789,7 @@ void LcdDisplay::SetEmotion(const char* emotion) {
 void LcdDisplay::SetIcon(const char* icon) {
     DisplayLockGuard lock(this);
 #if BOARD_USE_EMOTION_IMAGES
+    StopSpeakingEmotionAnim();
     if (emotion_image_ != nullptr) {
         lv_obj_add_flag(emotion_image_, LV_OBJ_FLAG_HIDDEN);
     }

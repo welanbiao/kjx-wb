@@ -32,6 +32,14 @@ EMOTIONS = [
     "confused",
 ]
 
+# Mouth-open talk frames (speak_0 reuses emotion_neutral to save flash)
+SPEAK_FRAMES = [
+    "speak_1",
+    "speak_2",
+    "speak_3",
+    "speak_4",
+]
+
 SIZE = 128
 
 
@@ -54,8 +62,8 @@ def png_to_rgb565_bytes(path: Path, swap_bytes: bool) -> bytes:
     return bytes(out)
 
 
-def write_image_c(out_dir: Path, name: str, data: bytes) -> None:
-    var = f"emotion_{name}"
+def write_image_c(out_dir: Path, name: str, data: bytes, var_prefix: str = "emotion") -> None:
+    var = f"{var_prefix}_{name}"
     map_name = f"{var}_map"
     lines = [
         '#include "lvgl.h"',
@@ -94,14 +102,20 @@ def write_api(out_dir: Path) -> None:
         "",
         "#include <lvgl.h>",
         "",
+        "#include <stddef.h>",
+        "",
         "#ifdef __cplusplus",
         'extern "C" {',
         "#endif",
         "",
         "const lv_image_dsc_t* FindEmotionImage(const char* emotion);",
+        "size_t GetSpeakingFrameCount(void);",
+        "const lv_image_dsc_t* GetSpeakingFrame(size_t index);",
         "",
     ]
     for name in EMOTIONS:
+        header.append(f"extern const lv_image_dsc_t emotion_{name};")
+    for name in SPEAK_FRAMES:
         header.append(f"extern const lv_image_dsc_t emotion_{name};")
     header += [
         "",
@@ -141,6 +155,29 @@ def write_api(out_dir: Path) -> None:
         "  return NULL;",
         "}",
         "",
+        "// Talk loop: closed -> open -> wide -> half -> mid -> slight",
+        "static const lv_image_dsc_t* const kSpeakingFrames[] = {",
+        "  &emotion_neutral,",
+        "  &emotion_speak_1,",
+        "  &emotion_speak_2,",
+        "  &emotion_speak_3,",
+        "  &emotion_speak_4,",
+        "  &emotion_speak_2,",
+        "  &emotion_speak_1,",
+        "};",
+        "",
+        "size_t GetSpeakingFrameCount(void) {",
+        "  return sizeof(kSpeakingFrames) / sizeof(kSpeakingFrames[0]);",
+        "}",
+        "",
+        "const lv_image_dsc_t* GetSpeakingFrame(size_t index) {",
+        "  size_t n = GetSpeakingFrameCount();",
+        "  if (n == 0) {",
+        "    return &emotion_neutral;",
+        "  }",
+        "  return kSpeakingFrames[index % n];",
+        "}",
+        "",
     ]
     (out_dir / "emotion_images.c").write_text("\n".join(source), encoding="utf-8")
 
@@ -166,10 +203,16 @@ def main() -> None:
 
     args.output.mkdir(parents=True, exist_ok=True)
     missing = [n for n in EMOTIONS if not (args.input / f"{n}.png").exists()]
+    missing += [n for n in SPEAK_FRAMES if not (args.input / f"{n}.png").exists()]
     if missing:
         raise SystemExit(f"Missing PNGs: {', '.join(missing)}")
 
     for name in EMOTIONS:
+        data = png_to_rgb565_bytes(args.input / f"{name}.png", args.swap_bytes)
+        write_image_c(args.output, name, data)
+        print(f"wrote emotion_{name}.c ({len(data)} bytes)")
+
+    for name in SPEAK_FRAMES:
         data = png_to_rgb565_bytes(args.input / f"{name}.png", args.swap_bytes)
         write_image_c(args.output, name, data)
         print(f"wrote emotion_{name}.c ({len(data)} bytes)")

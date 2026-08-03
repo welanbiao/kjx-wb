@@ -42,3 +42,26 @@ const lv_image_dsc_t* FindEmotionImage(const char* emotion) {
   }
   return NULL;
 }
+
+// Talk loop: closed -> open -> wide -> half -> mid -> slight
+static const lv_image_dsc_t* const kSpeakingFrames[] = {
+  &emotion_neutral,
+  &emotion_speak_1,
+  &emotion_speak_2,
+  &emotion_speak_3,
+  &emotion_speak_4,
+  &emotion_speak_2,
+  &emotion_speak_1,
+};
+
+size_t GetSpeakingFrameCount(void) {
+  return sizeof(kSpeakingFrames) / sizeof(kSpeakingFrames[0]);
+}
+
+const lv_image_dsc_t* GetSpeakingFrame(size_t index) {
+  size_t n = GetSpeakingFrameCount();
+  if (n == 0) {
+    return &emotion_neutral;
+  }
+  return kSpeakingFrames[index % n];
+}

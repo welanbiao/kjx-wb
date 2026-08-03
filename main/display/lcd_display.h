@@ -20,6 +20,15 @@ protected:
     lv_obj_t* container_ = nullptr;
     lv_obj_t* side_bar_ = nullptr;
     lv_obj_t* emotion_image_ = nullptr;
+#if BOARD_USE_EMOTION_IMAGES
+    lv_timer_t* emotion_anim_timer_ = nullptr;
+    unsigned emotion_anim_frame_ = 0;
+    bool emotion_speaking_anim_ = false;
+
+    void StartSpeakingEmotionAnim();
+    void StopSpeakingEmotionAnim();
+    static void SpeakingEmotionAnimTimerCb(lv_timer_t* timer);
+#endif
 
     DisplayFonts fonts_;
 

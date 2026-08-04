@@ -426,18 +426,40 @@ def parse_table_constraints(lines: list[str]) -> dict:
     return {"pk": pk_cols, "uniques": uniques, "checks": checks, "fks": fks}
 
 
+def _nstring(pattern_name: str, text: str) -> str | None:
+    """Extract N'string' / 'string' value for a named @param."""
+    m = re.search(
+        rf"@{pattern_name}\s*=\s*N?'((?:''|[^'])*)'",
+        text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not m:
+        return None
+    return m.group(1).replace("''", "'")
+
+
 def extract_ms_description_comments(stmt: str) -> list[tuple[str, str]]:
+    """
+    Parse sp_addextendedproperty MS_Description.
+    Column name from @level2name=N'...'; table comment when @level2name absent.
+    """
     comments: list[tuple[str, str]] = []
+    # Match each EXEC ... sp_addextendedproperty ... ;  (qualified names OK)
     for m in re.finditer(
-        r"sp_addextendedproperty\s+.*?@value\s*=\s*N?'((?:''|[^'])*)'.*?"
-        r"(?:@level2name\s*=\s*N?'((?:''|[^'])*)')?",
+        r"(?:EXEC(?:UTE)?\s+)?(?:\[[^\]]+\]|\w+)(?:\.(?:\[[^\]]+\]|\w+))*\.?sp_addextendedproperty\s+(.*?)(?=;|\bGO\b|\bEXEC(?:UTE)?\b|\bCREATE\s+TABLE\b|$)",
         stmt,
         re.IGNORECASE | re.DOTALL,
     ):
-        value = m.group(1).replace("''", "'")
-        col = m.group(2)
-        if col:
-            comments.append((to_ident(col), value))
+        args = m.group(1)
+        name = _nstring("name", args)
+        if name and name.lower() != "ms_description":
+            continue
+        value = _nstring("value", args)
+        if value is None:
+            continue
+        level2 = _nstring("level2name", args)
+        if level2:
+            comments.append((to_ident(level2), value))
         else:
             comments.append(("", value))
     return comments

@@ -368,7 +368,10 @@ void Application::Start() {
     protocol_ = std::make_unique<MqttProtocol>();
 #endif
     protocol_->OnNetworkError([this](const std::string& message) {
-        SetDeviceState(kDeviceStateIdle);
+        // Avoid StartDetection() before WakeNet/AFE is initialized during boot.
+        if (device_state_ != kDeviceStateStarting && device_state_ != kDeviceStateUnknown) {
+            SetDeviceState(kDeviceStateIdle);
+        }
         Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION);
     });
     protocol_->OnIncomingAudio([this](std::vector<uint8_t>&& data) {
@@ -710,7 +713,12 @@ void Application::OnAudioInput() {
 
 #if CONFIG_USE_WAKE_WORD_DETECT
     if (wake_word_detect_.IsDetectionRunning()) {
-        ReadAudio(data, 16000, wake_word_detect_.GetFeedSize());
+        size_t feed_size = wake_word_detect_.GetFeedSize();
+        if (feed_size == 0) {
+            vTaskDelay(pdMS_TO_TICKS(30));
+            return;
+        }
+        ReadAudio(data, 16000, feed_size);
         wake_word_detect_.Feed(data);
         return;
     }

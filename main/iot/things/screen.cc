@@ -2,6 +2,7 @@
 #include "board.h"
 #include "display/lcd_display.h"
 #include "settings.h"
+#include "application.h"
 
 #include <esp_log.h>
 #include <string>
@@ -13,7 +14,7 @@ namespace iot {
 // 这里仅定义 Screen 的属性和方法，不包含具体的实现
 class Screen : public Thing {
 public:
-    Screen() : Thing("Screen", "这是一个屏幕，可设置主题和亮度") {
+    Screen() : Thing("Screen", "这是一个屏幕，可设置主题和亮度，也可关机") {
         // 定义设备的属性
         properties_.AddStringProperty("theme", "主题", [this]() -> std::string {
             auto theme = Board::GetInstance().GetDisplay()->GetTheme();
@@ -45,6 +46,12 @@ public:
             if (backlight) {
                 backlight->SetBrightness(brightness, true);
             }
+        });
+
+        methods_.AddMethod("PowerOff", "关闭屏幕并关机", ParameterList(), [this](const ParameterList& parameters) {
+            Application::GetInstance().Schedule([]() {
+                Application::GetInstance().Shutdown();
+            });
         });
     }
 };

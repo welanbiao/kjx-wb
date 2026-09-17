@@ -16,7 +16,8 @@ public:
 
     // Returns false if the queue is full and the task was dropped
     bool Schedule(std::function<void()> callback);
-    void WaitForCompletion();
+    // Wait until queue is drained. timeout_ms < 0 waits forever; otherwise best-effort.
+    void WaitForCompletion(int timeout_ms = -1);
     size_t GetActiveTaskCount() const { return active_tasks_.load(); }
 
 private:

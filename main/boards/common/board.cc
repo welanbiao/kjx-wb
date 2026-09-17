@@ -8,6 +8,7 @@
 #include <esp_ota_ops.h>
 #include <esp_chip_info.h>
 #include <esp_random.h>
+#include <esp_sleep.h>
 
 #define TAG "Board"
 
@@ -56,6 +57,15 @@ Display* Board::GetDisplay() {
 Led* Board::GetLed() {
     static NoLed led;
     return &led;
+}
+
+void Board::PowerOff() {
+    ESP_LOGW(TAG, "PowerOff: no PMIC, entering deep sleep");
+    auto backlight = GetBacklight();
+    if (backlight) {
+        backlight->SetBrightness(0);
+    }
+    esp_deep_sleep_start();
 }
 
 std::string Board::GetJson() {

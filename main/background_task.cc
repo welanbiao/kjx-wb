@@ -2,6 +2,7 @@
 
 #include <esp_log.h>
 #include <esp_heap_caps.h>
+#include <chrono>
 
 #define TAG "BackgroundTask"
 
@@ -44,11 +45,19 @@ bool BackgroundTask::Schedule(std::function<void()> callback) {
     return true;
 }
 
-void BackgroundTask::WaitForCompletion() {
+void BackgroundTask::WaitForCompletion(int timeout_ms) {
     std::unique_lock<std::mutex> lock(mutex_);
-    condition_variable_.wait(lock, [this]() {
+    auto ready = [this]() {
         return main_tasks_.empty() && active_tasks_ == 0;
-    });
+    };
+    if (timeout_ms < 0) {
+        condition_variable_.wait(lock, ready);
+        return;
+    }
+    if (!condition_variable_.wait_for(lock, std::chrono::milliseconds(timeout_ms), ready)) {
+        ESP_LOGW(TAG, "WaitForCompletion timeout %dms, active=%u queued=%u",
+                 timeout_ms, (unsigned)active_tasks_.load(), (unsigned)main_tasks_.size());
+    }
 }
 
 void BackgroundTask::BackgroundTaskLoop() {

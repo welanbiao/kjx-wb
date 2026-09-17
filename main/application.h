@@ -67,6 +67,7 @@ public:
     void StopListening();
     void UpdateIotStates();
     void Reboot();
+    void Shutdown();
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
     bool CanEnterSleepMode();
@@ -124,6 +125,8 @@ private:
     void OnClockTimer();
     void SetListeningMode(ListeningMode mode);
     void AudioLoop();
+    void HandleNetworkError(const std::string& message);
+    bool TryHandleLocalCommand(const std::string& text);
 };
 
 #endif // _APPLICATION_H_

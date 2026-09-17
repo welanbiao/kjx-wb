@@ -58,6 +58,25 @@ bool MqttProtocol::StartMqttClient(bool report_error) {
 
     mqtt_->OnDisconnected([this]() {
         ESP_LOGI(TAG, "Disconnected from endpoint");
+        // Tear down UDP locally and surface a network error so Application leaves Speaking/Listening.
+        Application::GetInstance().Schedule([this]() {
+            bool had_channel = false;
+            {
+                std::lock_guard<std::mutex> lock(channel_mutex_);
+                if (udp_ != nullptr) {
+                    delete udp_;
+                    udp_ = nullptr;
+                    had_channel = true;
+                }
+            }
+            auto state = Application::GetInstance().GetDeviceState();
+            if (had_channel ||
+                state == kDeviceStateSpeaking ||
+                state == kDeviceStateListening ||
+                state == kDeviceStateConnecting) {
+                SetError(Lang::Strings::SERVER_NOT_CONNECTED);
+            }
+        });
     });
 
     mqtt_->OnMessage([this](const std::string& topic, const std::string& payload) {

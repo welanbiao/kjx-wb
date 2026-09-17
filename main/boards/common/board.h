@@ -48,6 +48,8 @@ public:
     virtual bool GetBatteryLevel(int &level, bool& charging, bool& discharging);
     virtual std::string GetJson();
     virtual void SetPowerSaveMode(bool enabled) = 0;
+    // Turn screen off and fully power down when supported (e.g. AXP2101 boards).
+    virtual void PowerOff();
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \

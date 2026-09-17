@@ -238,6 +238,20 @@ public:
         level = pmic_->GetBatteryLevel();
         return true;
     }
+
+    virtual void PowerOff() override {
+        ESP_LOGI(TAG, "Powering off");
+        if (auto backlight = GetBacklight()) {
+            backlight->SetBrightness(0);
+        }
+        if (auto codec = GetAudioCodec()) {
+            codec->EnableInput(false);
+            codec->EnableOutput(false);
+        }
+        if (pmic_) {
+            pmic_->PowerOff();
+        }
+    }
 };
 
 DECLARE_BOARD(WristGemBoard);

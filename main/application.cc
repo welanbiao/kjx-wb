@@ -120,7 +120,7 @@ void Application::CheckNewVersion() {
                     std::lock_guard<std::mutex> lock(mutex_);
                     audio_decode_queue_.clear();
                 }
-                background_task_->WaitForCompletion();
+                background_task_->WaitForCompletion(5000);
                 delete background_task_;
                 background_task_ = nullptr;
                 vTaskDelay(pdMS_TO_TICKS(1000));
@@ -194,7 +194,7 @@ void Application::ShowActivationCode() {
     // This sentence uses 9KB of SRAM, so we need to wait for it to finish
     Alert(Lang::Strings::ACTIVATION, message.c_str(), "happy", Lang::Sounds::P3_ACTIVATION);
     vTaskDelay(pdMS_TO_TICKS(1000));
-    background_task_->WaitForCompletion();
+    background_task_->WaitForCompletion(10000);
 
     for (const auto& digit : code) {
         auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
@@ -261,6 +261,10 @@ void Application::ToggleChatState() {
         Schedule([this]() {
             SetDeviceState(kDeviceStateConnecting);
             if (!protocol_->OpenAudioChannel()) {
+                // OpenAudioChannel already reports network errors; ensure we leave Connecting.
+                if (device_state_ == kDeviceStateConnecting) {
+                    SetDeviceState(kDeviceStateIdle);
+                }
                 return;
             }
 
@@ -268,11 +272,31 @@ void Application::ToggleChatState() {
         });
     } else if (device_state_ == kDeviceStateSpeaking) {
         Schedule([this]() {
-            AbortSpeaking(kAbortReasonNone);
+            // Network may already be dead: always recover locally so touch stays responsive.
+            aborted_ = true;
+            if (protocol_->IsAudioChannelOpened()) {
+                protocol_->SendAbortSpeaking(kAbortReasonNone);
+            }
+            ResetDecoder();
+            protocol_->CloseAudioChannel();
+            if (device_state_ == kDeviceStateSpeaking || device_state_ == kDeviceStateConnecting) {
+                SetDeviceState(kDeviceStateIdle);
+            }
         });
     } else if (device_state_ == kDeviceStateListening) {
         Schedule([this]() {
             protocol_->CloseAudioChannel();
+            if (device_state_ == kDeviceStateListening) {
+                SetDeviceState(kDeviceStateIdle);
+            }
+        });
+    } else if (device_state_ == kDeviceStateConnecting) {
+        // Cancel a stuck connecting attempt (common after mid-session network loss).
+        Schedule([this]() {
+            aborted_ = true;
+            ResetDecoder();
+            protocol_->CloseAudioChannel();
+            SetDeviceState(kDeviceStateIdle);
         });
     }
 }
@@ -368,11 +392,10 @@ void Application::Start() {
     protocol_ = std::make_unique<MqttProtocol>();
 #endif
     protocol_->OnNetworkError([this](const std::string& message) {
-        // Avoid StartDetection() before WakeNet/AFE is initialized during boot.
-        if (device_state_ != kDeviceStateStarting && device_state_ != kDeviceStateUnknown) {
-            SetDeviceState(kDeviceStateIdle);
-        }
-        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION);
+        // Always bounce to MainLoop: MQTT callbacks must not block on WaitForCompletion.
+        Schedule([this, message]() {
+            HandleNetworkError(message);
+        });
     });
     protocol_->OnIncomingAudio([this](std::vector<uint8_t>&& data) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -435,7 +458,7 @@ void Application::Start() {
                 });
             } else if (strcmp(state->valuestring, "stop") == 0) {
                 Schedule([this]() {
-                    background_task_->WaitForCompletion();
+                    background_task_->WaitForCompletion(3000);
                     if (device_state_ == kDeviceStateSpeaking) {
                         if (listening_mode_ == kListeningModeManualStop) {
                             SetDeviceState(kDeviceStateIdle);
@@ -459,6 +482,7 @@ void Application::Start() {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
+                    TryHandleLocalCommand(message);
                 });
             }
         } else if (strcmp(type->valuestring, "llm") == 0) {
@@ -574,6 +598,18 @@ void Application::OnClockTimer() {
         int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
         int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
         ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
+
+        // Recover from "speaking/listening with dead channel" freezes (e.g. mid-TTS Wi-Fi drop).
+        if (protocol_ &&
+            (device_state_ == kDeviceStateSpeaking ||
+             device_state_ == kDeviceStateListening ||
+             device_state_ == kDeviceStateConnecting) &&
+            !protocol_->IsAudioChannelOpened()) {
+            ESP_LOGW(TAG, "Audio channel lost in state %s, recovering to idle", STATE_STRINGS[device_state_]);
+            Schedule([this]() {
+                HandleNetworkError(Lang::Strings::SERVER_NOT_CONNECTED);
+            });
+        }
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
         if (ota_.HasServerTime()) {
@@ -801,8 +837,8 @@ void Application::SetDeviceState(DeviceState state) {
     auto previous_state = device_state_;
     device_state_ = state;
     ESP_LOGD(TAG, "STATE: %s", STATE_STRINGS[device_state_]);
-    // The state is changed, wait for all background tasks to finish
-    background_task_->WaitForCompletion();
+    // Bound wait so a stuck opus job cannot freeze MainLoop / touch forever.
+    background_task_->WaitForCompletion(3000);
 
     auto& board = Board::GetInstance();
     auto display = board.GetDisplay();
@@ -909,6 +945,101 @@ void Application::UpdateIotStates() {
 void Application::Reboot() {
     ESP_LOGI(TAG, "Rebooting...");
     esp_restart();
+}
+
+void Application::HandleNetworkError(const std::string& message) {
+    ESP_LOGW(TAG, "HandleNetworkError: %s (state=%s)", message.c_str(), STATE_STRINGS[device_state_]);
+
+    // Avoid StartDetection() before WakeNet/AFE is initialized during boot.
+    if (device_state_ == kDeviceStateStarting || device_state_ == kDeviceStateUnknown) {
+        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION);
+        return;
+    }
+
+    // Already idle: channel teardown finished; don't spam alerts on every reconnect attempt.
+    if (device_state_ == kDeviceStateIdle) {
+        return;
+    }
+
+    aborted_ = true;
+    ResetDecoder();
+
+    if (protocol_ &&
+        (device_state_ == kDeviceStateSpeaking ||
+         device_state_ == kDeviceStateListening ||
+         device_state_ == kDeviceStateConnecting)) {
+        protocol_->CloseAudioChannel();
+    }
+
+    if (device_state_ != kDeviceStateIdle) {
+        SetDeviceState(kDeviceStateIdle);
+    }
+    Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION);
+}
+
+bool Application::TryHandleLocalCommand(const std::string& text) {
+    // Normalize: drop whitespace / common punctuation for robust matching.
+    std::string normalized;
+    normalized.reserve(text.size());
+    for (unsigned char ch : text) {
+        if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
+            continue;
+        }
+        // Skip ASCII punctuation
+        if (ch < 0x80 && (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == ';' || ch == ':')) {
+            continue;
+        }
+        normalized.push_back(static_cast<char>(ch));
+    }
+
+    auto contains = [&](const char* token) {
+        return normalized.find(token) != std::string::npos;
+    };
+
+    // Reject negated forms: "不要关机" / "别关机"
+    if ((contains("关机") || contains("关掉机") || contains("关闭电源") || contains("关掉电源")) &&
+        !contains("不要") && !contains("别关") && !contains("取消")) {
+        ESP_LOGI(TAG, "Local command: shutdown (%s)", text.c_str());
+        Shutdown();
+        return true;
+    }
+    return false;
+}
+
+void Application::Shutdown() {
+    ESP_LOGI(TAG, "Shutdown requested");
+    aborted_ = true;
+    ResetDecoder();
+
+    if (protocol_) {
+        if (protocol_->IsAudioChannelOpened()) {
+            protocol_->SendAbortSpeaking(kAbortReasonNone);
+        }
+        protocol_->CloseAudioChannel();
+    }
+
+    auto& board = Board::GetInstance();
+    auto display = board.GetDisplay();
+    if (display) {
+        display->SetStatus(Lang::Strings::STANDBY);
+        display->SetChatMessage("system", "");
+        display->SetEmotion("sleepy");
+    }
+
+    auto codec = board.GetAudioCodec();
+    if (codec) {
+        codec->EnableInput(false);
+        codec->EnableOutput(false);
+    }
+
+    auto backlight = board.GetBacklight();
+    if (backlight) {
+        backlight->SetBrightness(0);
+    }
+
+    // Let display/backlight settle, then cut power.
+    vTaskDelay(pdMS_TO_TICKS(300));
+    board.PowerOff();
 }
 
 void Application::WakeWordInvoke(const std::string& wake_word) {

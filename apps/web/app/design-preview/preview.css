@@ -764,20 +764,20 @@
 /* === Direction C: Key & Curtain (custom) === */
 
 .dp-c {
-  --dp-bg: #1a0f12;
-  --dp-ink: #f3ebdd;
-  --dp-muted: #cbbba8;
-  --dp-accent: #d4a05a;
-  --dp-line: #3a2428;
-  --dp-focus: #d4a05a;
-  --dp-input-bg: #f3ebdd;
-  background-color: #1a0f12;
+  --dp-bg: #061923;
+  --dp-ink: #faedd1;
+  --dp-muted: #b9ddeb;
+  --dp-accent: #f4520d;
+  --dp-line: #2a9ed2;
+  --dp-focus: #ff7a3d;
+  --dp-input-bg: #faedd1;
+  background-color: var(--dp-bg);
   background-image:
-    radial-gradient(1200px 400px at 50% -10%, #7a2438 0%, transparent 60%),
+    radial-gradient(1000px 480px at 60% -12%, rgb(19 135 192 / 0.72) 0%, transparent 62%),
     repeating-linear-gradient(
       90deg,
-      #1a0f12 0 12px,
-      #221318 12px 13px
+      transparent 0 15px,
+      rgb(42 158 210 / 0.1) 15px 16px
     );
   color: var(--dp-ink);
   font-family: var(--font-figtree), var(--font-noto-sans), "Noto Sans SC", sans-serif;
@@ -787,10 +787,11 @@
   height: 1.1rem;
   background: repeating-linear-gradient(
     90deg,
-    #5c1a2e 0 18px,
-    #7a2438 18px 36px
+    #1387c0 0 20px,
+    #2a9ed2 20px 36px,
+    #f4520d 36px 40px
   );
-  box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
+  box-shadow: 0 8px 22px rgb(244 82 13 / 0.28);
   animation: dp-drop 0.6s ease both;
 }
 
@@ -818,14 +819,45 @@
   gap: 1.5rem;
 }
 
+.dp-c .dp-brand-art {
+  width: clamp(8.25rem, 18vw, 10.5rem);
+  margin: 0 0 1.25rem;
+  padding: 0.4rem;
+  overflow: hidden;
+  color: #08212c;
+  background: #faedd1;
+  border: 2px solid var(--dp-accent);
+  border-radius: 1.4rem 0.35rem 1.4rem 0.35rem;
+  box-shadow: 0.55rem 0.55rem 0 #1387c0;
+  transform: rotate(-1.5deg);
+}
+
+.dp-c .dp-brand-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 1rem 0.2rem 0 0.2rem;
+}
+
+.dp-c .dp-brand-art figcaption {
+  padding: 0.4rem 0.25rem 0.15rem;
+  font-family: var(--font-spline-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .dp-c .dp-ticket {
-  background: #f3ebdd;
-  color: #1c1410;
+  align-self: start;
+  background: #faedd1;
+  color: #08212c;
   border: 0;
   border-radius: 12px;
   padding: 1.25rem 1.25rem 1.25rem 2rem;
   position: relative;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 0.28);
+  box-shadow:
+    0 12px 30px rgb(0 0 0 / 0.28),
+    0 0 0 3px #f4520d;
 }
 
 .dp-c .dp-ticket::before,
@@ -836,8 +868,8 @@
   width: 0.85rem;
   height: 0.85rem;
   border-radius: 50%;
-  background: #1a0f12;
-  box-shadow: 0 4.2rem 0 #1a0f12, 0 8.4rem 0 #1a0f12;
+  background: var(--dp-bg);
+  box-shadow: 0 4.2rem 0 var(--dp-bg), 0 8.4rem 0 var(--dp-bg);
 }
 
 .dp-c .dp-ticket::before {
@@ -850,20 +882,20 @@
 
 .dp-c .dp-ticket .dp-lead,
 .dp-c .dp-ticket .dp-hint {
-  color: #5a4c40;
+  color: #365565;
 }
 
 .dp-c .dp-ticket .dp-btn {
-  background: #1c1410;
-  color: #f3ebdd;
-  border-color: #1c1410;
+  background: #08212c;
+  color: #faedd1;
+  border-color: #08212c;
   border-radius: 999px;
 }
 
 .dp-c .dp-ticket .dp-btn-ghost {
   background: transparent;
-  color: #1c1410;
-  border-color: #1c1410;
+  color: #08212c;
+  border-color: #08212c;
 }
 
 .dp-c .dp-work-grid {
@@ -871,7 +903,7 @@
 }
 
 .dp-c .dp-card {
-  background: rgb(243 235 221 / 0.06);
+  background: rgb(19 135 192 / 0.16);
   border-color: var(--dp-accent);
   border-radius: 2px 18px 2px 18px;
 }
@@ -906,8 +938,8 @@
 }
 
 .dp-c .dp-stat {
-  background: #f3ebdd;
-  color: #1c1410;
+  background: #faedd1;
+  color: #08212c;
   border: 0;
   border-radius: 10px;
 }

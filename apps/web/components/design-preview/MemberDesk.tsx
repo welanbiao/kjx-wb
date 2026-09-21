@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   BIND_COPY,
@@ -103,6 +104,18 @@ export function MemberDesk({ direction }: { direction: DirectionId }) {
           {direction === "b" ? <p className="dp-masthead">koujunxin</p> : null}
           <div className="dp-hero-layout">
             <div>
+              {direction === "c" ? (
+                <figure className="dp-brand-art">
+                  <Image
+                    src="/brand/koujunxin-logo.jpg"
+                    alt="叩君芯渐变图标"
+                    width={1024}
+                    height={1024}
+                    sizes="(max-width: 767px) 132px, 168px"
+                  />
+                  <figcaption>晴空海蓝 · 暖橙光 · 奶油米白</figcaption>
+                </figure>
+              ) : null}
               {direction === "a" ? <div className="dp-accent-bar" aria-hidden="true" /> : null}
               <p className="dp-kicker">会员制自营平台</p>
               <h1 id="hero-title" className="dp-title">

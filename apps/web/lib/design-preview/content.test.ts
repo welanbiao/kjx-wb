@@ -41,6 +41,8 @@ describe("design preview shared content", () => {
   it("gives each direction a distinct palette", () => {
     expect(DIRECTION_TOKENS.a.accent).toBe("#ff3300");
     expect(DIRECTION_TOKENS.b.accent).toBe("#e85d26");
-    expect(DIRECTION_TOKENS.c.accent).toBe("#d4a05a");
+    expect(DIRECTION_TOKENS.c.accent).toBe("#f4520d");
+    expect(DIRECTION_TOKENS.c.surface).toBe("#1387c0");
+    expect(DIRECTION_TOKENS.c.ticket).toBe("#faedd1");
   });
 });

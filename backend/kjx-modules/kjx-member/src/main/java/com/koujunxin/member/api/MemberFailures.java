@@ -24,6 +24,27 @@ public final class MemberFailures {
         return new MemberException(1004, 429, "尝试次数过多，请 30 分钟后再试");
     }
 
+    public static MemberException notStarted(String time) {
+        String when = time == null || time.isBlank() ? "" : time;
+        return new MemberException(1005, 403, "会员尚未生效，生效时间 " + when);
+    }
+
+    public static MemberException expired() {
+        return new MemberException(1006, 403, "会员已过期，请续费");
+    }
+
+    public static MemberException quotaExhausted() {
+        return new MemberException(1007, 403, "可解锁数量已用完");
+    }
+
+    public static MemberException unpublished() {
+        return new MemberException(1008, 403, "作品已下架");
+    }
+
+    public static MemberException bindingRequired() {
+        return new MemberException(1009, 403, "请先完成会员绑定");
+    }
+
     public static MemberException cancelling() {
         return new MemberException(1014, 403, "账号注销中，暂时无法操作");
     }

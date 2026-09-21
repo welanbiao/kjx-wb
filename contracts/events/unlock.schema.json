@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kjx.local/contracts/events/unlock.schema.json",
+  "title": "KjxUnlockRecordedPayload",
+  "description": "解锁记录投影事件 payload。事实源仍是 MySQL unlock_record / entitlement；本事件供通知、统计与对账，不得回读为鉴权依据。禁止包含手机号、token、会员编码明文。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "result",
+    "source",
+    "memberId",
+    "deptId",
+    "workId",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["SUCCESS", "FAILED"]
+    },
+    "source": {
+      "type": "string",
+      "enum": ["user", "official_add", "official_remove", "fix"]
+    },
+    "accountId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "memberId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "deptId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workCode": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "unlockRecordId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "failReason": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "beforeUnlockedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "afterUnlockedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

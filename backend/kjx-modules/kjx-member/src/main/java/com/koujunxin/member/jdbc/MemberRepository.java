@@ -152,6 +152,25 @@ public class MemberRepository {
                 accountId, Timestamp.valueOf(boundAt), id);
     }
 
+    /**
+     * 新解锁额度 CAS。必须单 SQL：禁止先 SELECT 再 UPDATE。
+     */
+    public int casIncrementUnlocked(long memberId) {
+        return jdbc.update(
+                """
+                UPDATE kjx_member
+                   SET unlocked_count = unlocked_count + 1,
+                       remain_count   = remain_count - 1,
+                       version        = version + 1,
+                       update_time    = CURRENT_TIMESTAMP(3)
+                 WHERE id = ?
+                   AND deleted = b'0'
+                   AND status = 'VALID'
+                   AND unlocked_count < available_count
+                """,
+                memberId);
+    }
+
     public int markUnbound(long id) {
         return jdbc.update(
                 """

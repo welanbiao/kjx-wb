@@ -19,7 +19,8 @@ contracts/
 └── events/
     ├── outbox-envelope.schema.json    # Outbox 信封
     ├── notification.schema.json       # 通知投影 payload
-    ├── entitlement.schema.json        # 权益/解锁投影 payload
+    ├── entitlement.schema.json        # 权益投影 payload
+    ├── unlock.schema.json             # 解锁记录投影 payload
     └── analytics.schema.json          # ACCESS / AI_CALL / TOOL_CALL 投影
 ```
 

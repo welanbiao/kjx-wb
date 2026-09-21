@@ -482,6 +482,53 @@ unlockRecordPage:
       "403":
         $ref: "../../schemas/common.yaml#/responses/Forbidden"
 
+unlockRecordExport:
+  get:
+    tags:
+      - Admin Unlock Record
+    operationId: exportUnlockRecords
+    summary: 解锁记录导出
+    description: |
+      运营按 dept_id 数据权限导出。HOST 不得调用本运营接口。
+      不逻辑删除。reason 不适用于只读导出。
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: deptId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: memberId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: result
+        schema:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILED
+      - in: query
+        name: source
+        schema:
+          $ref: "../schemas/work.yaml#/UnlockSource"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: XLSX 文件
+        content:
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              type: string
+              format: binary
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
 adminWorkPage:
   get:
     tags:

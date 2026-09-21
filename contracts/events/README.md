@@ -21,6 +21,7 @@
 |---|---|
 | `notification.requested` | `notification.schema.json` |
 | `entitlement.granted` / `entitlement.revoked` | `entitlement.schema.json` |
+| `unlock.recorded` | `unlock.schema.json` |
 | `analytics.*.projected` | `analytics.schema.json` |
 | 其他白名单类型 | 至少含 `schemaVersion`，且无敏感键 |
 

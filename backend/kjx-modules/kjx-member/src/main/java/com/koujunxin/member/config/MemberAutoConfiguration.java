@@ -32,8 +32,10 @@ import com.koujunxin.member.api.port.ReviewTransactionHook;
 import com.koujunxin.member.application.MemberApplicationService;
 import com.koujunxin.member.bind.RedisBindAttemptStore;
 import com.koujunxin.member.code.MemberCodeGenerator;
+import com.koujunxin.member.entitlement.JdbcEntitlementQueryPort;
 import com.koujunxin.member.jdbc.AppealRepository;
 import com.koujunxin.member.jdbc.BindingRepository;
+import com.koujunxin.member.jdbc.EntitlementRepository;
 import com.koujunxin.member.jdbc.HostRepository;
 import com.koujunxin.member.jdbc.MemberRepository;
 import com.koujunxin.member.notify.BindingOutbox;
@@ -46,6 +48,7 @@ import com.koujunxin.member.port.StpKitAppAccountAccessor;
 import com.koujunxin.member.recalc.MemberRecalcService;
 import com.koujunxin.notification.outbox.OutboxAutoConfiguration;
 import com.koujunxin.notification.outbox.OutboxWriter;
+import com.koujunxin.work.port.EntitlementQueryPort;
 
 @AutoConfiguration(
         after = {
@@ -53,7 +56,10 @@ import com.koujunxin.notification.outbox.OutboxWriter;
                 IdempotencyAutoConfiguration.class,
                 OutboxAutoConfiguration.class
         },
-        beforeName = "com.koujunxin.account.config.AccountAutoConfiguration")
+        beforeName = {
+                "com.koujunxin.account.config.AccountAutoConfiguration",
+                "com.koujunxin.work.config.WorkAutoConfiguration"
+        })
 @ConditionalOnClass(JdbcTemplate.class)
 @ConditionalOnBean(JdbcTemplate.class)
 public class MemberAutoConfiguration {
@@ -80,6 +86,18 @@ public class MemberAutoConfiguration {
     @ConditionalOnMissingBean
     MemberRepository memberRepository(JdbcTemplate jdbcTemplate) {
         return new MemberRepository(jdbcTemplate);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    EntitlementRepository entitlementRepository(JdbcTemplate jdbcTemplate) {
+        return new EntitlementRepository(jdbcTemplate);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(EntitlementQueryPort.class)
+    EntitlementQueryPort entitlementQueryPort(EntitlementRepository entitlementRepository) {
+        return new JdbcEntitlementQueryPort(entitlementRepository);
     }
 
     @Bean
@@ -172,6 +190,7 @@ public class MemberAutoConfiguration {
             MemberCodeGenerator memberCodeGenerator,
             HostRepository hostRepository,
             MemberRepository memberRepository,
+            EntitlementRepository entitlementRepository,
             BindingRepository bindingRepository,
             AppealRepository appealRepository,
             AccountBindingCommandPort accountBindingCommandPort,
@@ -193,6 +212,7 @@ public class MemberAutoConfiguration {
                 memberCodeGenerator,
                 hostRepository,
                 memberRepository,
+                entitlementRepository,
                 bindingRepository,
                 appealRepository,
                 accountBindingCommandPort,

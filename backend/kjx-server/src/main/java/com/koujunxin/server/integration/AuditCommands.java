@@ -76,7 +76,7 @@ final class AuditCommands {
         }
     }
 
-    private static String clientIp() {
+    static String clientIp() {
         try {
             return ServletUtils.getClientIP();
         } catch (RuntimeException ignored) {
@@ -84,7 +84,7 @@ final class AuditCommands {
         }
     }
 
-    private static String valueOrUuid(String value) {
+    static String valueOrUuid(String value) {
         return valueOrDefault(value, UUID.randomUUID().toString());
     }
 

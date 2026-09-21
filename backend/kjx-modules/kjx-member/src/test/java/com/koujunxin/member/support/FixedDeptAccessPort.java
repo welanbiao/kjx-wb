@@ -27,6 +27,14 @@ public final class FixedDeptAccessPort implements DeptAccessPort {
         return new FixedDeptAccessPort(actorId, 0, true, Set.of());
     }
 
+    public static FixedDeptAccessPort opsLimited(long actorId, long... deptIds) {
+        java.util.HashSet<Long> allowed = new java.util.HashSet<>();
+        for (long deptId : deptIds) {
+            allowed.add(deptId);
+        }
+        return new FixedDeptAccessPort(actorId, 0, true, Set.copyOf(allowed));
+    }
+
     @Override
     public long requireActorId() {
         return actorId;
@@ -43,6 +51,9 @@ public final class FixedDeptAccessPort implements DeptAccessPort {
     @Override
     public void requireAccess(long resourceDeptId) {
         if (ops) {
+            if (!allowed.isEmpty() && !allowed.contains(resourceDeptId)) {
+                throw MemberFailures.forbidden();
+            }
             return;
         }
         if (!allowed.contains(resourceDeptId)) {

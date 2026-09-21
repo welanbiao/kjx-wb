@@ -16,8 +16,10 @@ import org.springframework.context.annotation.ComponentScan;
 
 import com.koujunxin.member.application.MemberApplicationService;
 import com.koujunxin.member.web.AdminOpsMemberController;
+import com.koujunxin.member.web.AdminOpsUnlockController;
 import com.koujunxin.member.web.AdminSelfMemberController;
 import com.koujunxin.member.web.AppMemberController;
+import com.koujunxin.member.web.AppUnlockController;
 
 @SpringBootTest(
         classes = MemberSkeletonContextTest.App.class,
@@ -32,7 +34,8 @@ class MemberSkeletonContextTest {
         assertNull(context.getBeanProvider(MemberApplicationService.class).getIfAvailable());
         assertEquals(0, context.getBeanNamesForType(AppMemberController.class).length);
         assertEquals(0, context.getBeanNamesForType(AdminSelfMemberController.class).length);
-        assertEquals(0, context.getBeanNamesForType(AdminOpsMemberController.class).length);
+        assertEquals(0, context.getBeanNamesForType(AppUnlockController.class).length);
+        assertEquals(0, context.getBeanNamesForType(AdminOpsUnlockController.class).length);
     }
 
     @SpringBootConfiguration

@@ -28,12 +28,20 @@ import com.koujunxin.member.bind.RedisBindAttemptStore;
 import com.koujunxin.member.code.MemberCodeGenerator;
 import com.koujunxin.member.jdbc.AppealRepository;
 import com.koujunxin.member.jdbc.BindingRepository;
+import com.koujunxin.member.jdbc.EntitlementRepository;
 import com.koujunxin.member.jdbc.HostRepository;
 import com.koujunxin.member.jdbc.MemberRepository;
+import com.koujunxin.member.jdbc.UnlockRecordRepository;
 import com.koujunxin.member.notify.BindingOutbox;
 import com.koujunxin.member.port.InMemoryHostDeptPort;
 import com.koujunxin.member.port.JdbcBoundMemberQueryPort;
 import com.koujunxin.member.recalc.MemberRecalcService;
+import com.koujunxin.member.unlock.NewUnlockPolicy;
+import com.koujunxin.member.unlock.RedisUnlockFailMerger;
+import com.koujunxin.member.unlock.UnlockApplicationService;
+import com.koujunxin.member.unlock.UnlockOutbox;
+import com.koujunxin.member.api.port.UnlockTransactionHook;
+import com.koujunxin.work.visibility.WorkVisibilityService;
 import com.koujunxin.notification.outbox.jdbc.JdbcOutboxWriter;
 import com.koujunxin.notification.outbox.validation.OutboxPayloadValidator;
 import com.zaxxer.hikari.HikariConfig;
@@ -54,7 +62,13 @@ public abstract class MysqlMemberSupport {
     private static InMemoryHostDeptPort hostDepts;
     private static RecordingMemberAuditPort audit;
     private static MemberApplicationService service;
+    private static UnlockApplicationService unlockService;
+    private static EntitlementRepository entitlementRepository;
+    private static UnlockRecordRepository unlockRecordRepository;
+    private static JdbcTestWorkCatalog works;
     private static JdbcBoundMemberQueryPort snapshots;
+    private static UnlockTransactionHook unlockHook = new UnlockTransactionHook() {
+    };
     private static ReviewTransactionHook hook = new ReviewTransactionHook() {
     };
     private static String jdbcUrl;
@@ -94,7 +108,7 @@ public abstract class MysqlMemberSupport {
         hikari.setJdbcUrl(MYSQL.getJdbcUrl());
         hikari.setUsername(MYSQL.getUsername());
         hikari.setPassword(MYSQL.getPassword());
-        hikari.setMaximumPoolSize(16);
+        hikari.setMaximumPoolSize(64);
         hikari.setConnectionInitSql("SET time_zone = '+08:00'");
         dataSource = new HikariDataSource(hikari);
         jdbcUrl = MYSQL.getJdbcUrl();
@@ -117,7 +131,13 @@ public abstract class MysqlMemberSupport {
     }
 
     static synchronized void rebuildService(ReviewTransactionHook nextHook) {
+        rebuildService(nextHook, unlockHook == null ? new UnlockTransactionHook() {
+        } : unlockHook);
+    }
+
+    static synchronized void rebuildService(ReviewTransactionHook nextHook, UnlockTransactionHook nextUnlockHook) {
         hook = nextHook;
+        unlockHook = nextUnlockHook;
         HostRepository hosts = new HostRepository(jdbc);
         MemberRepository members = new MemberRepository(jdbc);
         BindingRepository bindings = new BindingRepository(jdbc);
@@ -127,6 +147,9 @@ public abstract class MysqlMemberSupport {
         accounts = new JdbcAccountBindingCommandPort(jdbc);
         hostDepts = new InMemoryHostDeptPort();
         audit = new RecordingMemberAuditPort();
+        entitlementRepository = new EntitlementRepository(jdbc);
+        unlockRecordRepository = new UnlockRecordRepository(jdbc);
+        works = new JdbcTestWorkCatalog(jdbc);
         service = new MemberApplicationService(
                 Clock.system(ZoneId.of("Asia/Shanghai")),
                 tx,
@@ -135,6 +158,7 @@ public abstract class MysqlMemberSupport {
                 new MemberCodeGenerator(),
                 hosts,
                 members,
+                entitlementRepository,
                 bindings,
                 appeals,
                 accounts,
@@ -146,6 +170,23 @@ public abstract class MysqlMemberSupport {
                 snapshots,
                 hook,
                 Duration.ofMinutes(30));
+        WorkVisibilityService visibility = new WorkVisibilityService();
+        unlockService = new UnlockApplicationService(
+                Clock.system(ZoneId.of("Asia/Shanghai")),
+                tx,
+                mapper,
+                recalc,
+                members,
+                entitlementRepository,
+                unlockRecordRepository,
+                accounts,
+                works,
+                new NewUnlockPolicy(recalc, visibility, Clock.system(ZoneId.of("Asia/Shanghai"))),
+                audit,
+                new UnlockOutbox(new JdbcOutboxWriter(jdbc, mapper, new OutboxPayloadValidator(mapper))),
+                new JdbcIdempotencyService(jdbc),
+                new RedisUnlockFailMerger(redisson, Duration.ofSeconds(60)),
+                unlockHook);
     }
 
     protected MemberApplicationService service() {
@@ -178,9 +219,39 @@ public abstract class MysqlMemberSupport {
         return snapshots;
     }
 
+    protected UnlockApplicationService unlocks() {
+        ensureStarted();
+        return unlockService;
+    }
+
+    protected JdbcTestWorkCatalog works() {
+        ensureStarted();
+        return works;
+    }
+
+    protected EntitlementRepository entitlements() {
+        ensureStarted();
+        return entitlementRepository;
+    }
+
+    protected UnlockRecordRepository unlockRecords() {
+        ensureStarted();
+        return unlockRecordRepository;
+    }
+
+    protected RedissonClient redisson() {
+        ensureStarted();
+        return redisson;
+    }
+
     protected void useHook(ReviewTransactionHook next) {
         ensureStarted();
-        rebuildService(next);
+        rebuildService(next, unlockHook);
+    }
+
+    protected void useUnlockHook(UnlockTransactionHook next) {
+        ensureStarted();
+        rebuildService(hook, next);
     }
 
     protected void truncateAll() {
@@ -192,6 +263,11 @@ public abstract class MysqlMemberSupport {
         jdbc().execute("TRUNCATE TABLE kjx_account");
         jdbc().execute("TRUNCATE TABLE kjx_outbox_event");
         jdbc().execute("TRUNCATE TABLE kjx_idempotency_guard");
+        jdbc().execute("TRUNCATE TABLE kjx_member_entitlement");
+        jdbc().execute("TRUNCATE TABLE kjx_unlock_record");
+        jdbc().execute("TRUNCATE TABLE kjx_content_version");
+        jdbc().execute("TRUNCATE TABLE kjx_work_version");
+        jdbc().execute("TRUNCATE TABLE kjx_work");
         jdbc().execute("SET FOREIGN_KEY_CHECKS = 1");
         if (redisson != null) {
             redisson.getKeys().flushdb();
@@ -199,6 +275,7 @@ public abstract class MysqlMemberSupport {
         hostDepts().put(0L, "root");
         audit().clear();
         rebuildService(new ReviewTransactionHook() {
+        }, new UnlockTransactionHook() {
         });
     }
 }

@@ -38,6 +38,7 @@ import com.koujunxin.member.domain.MemberRecord;
 import com.koujunxin.member.domain.PageResult;
 import com.koujunxin.member.jdbc.AppealRepository;
 import com.koujunxin.member.jdbc.BindingRepository;
+import com.koujunxin.member.jdbc.EntitlementRepository;
 import com.koujunxin.member.jdbc.HostRepository;
 import com.koujunxin.member.jdbc.MemberRepository;
 import com.koujunxin.member.normalize.DouyinIds;
@@ -61,6 +62,7 @@ public class MemberApplicationService {
     private final MemberCodeGenerator codes;
     private final HostRepository hosts;
     private final MemberRepository members;
+    private final EntitlementRepository entitlements;
     private final BindingRepository bindings;
     private final AppealRepository appeals;
     private final AccountBindingCommandPort accounts;
@@ -81,6 +83,7 @@ public class MemberApplicationService {
             MemberCodeGenerator codes,
             HostRepository hosts,
             MemberRepository members,
+            EntitlementRepository entitlements,
             BindingRepository bindings,
             AppealRepository appeals,
             AccountBindingCommandPort accounts,
@@ -99,6 +102,7 @@ public class MemberApplicationService {
         this.codes = codes;
         this.hosts = hosts;
         this.members = members;
+        this.entitlements = entitlements;
         this.bindings = bindings;
         this.appeals = appeals;
         this.accounts = accounts;
@@ -254,8 +258,11 @@ public class MemberApplicationService {
                 () -> {
                     MemberRecord existing = members.lockById(memberId).orElseThrow(MemberFailures::notFound);
                     access.requireAccess(existing.deptId());
+                    int unlocked = entitlements == null
+                            ? existing.unlockedCount()
+                            : entitlements.countByMemberId(memberId);
                     LocalDateTime startAt = ExpireTimes.startAt(existing.expireAt(), existing.subscribedDays());
-                    var result = recalc.recalc(existing.subscribedDays(), existing.unlockedCount(), startAt,
+                    var result = recalc.recalc(existing.subscribedDays(), unlocked, startAt,
                             existing.expireAt(), now());
                     members.applyRecalc(memberId, result, startAt, String.valueOf(access.requireActorId()));
                     audit.record("member", memberId, existing.deptId(), "RECALC", reason, access.requireActorId());

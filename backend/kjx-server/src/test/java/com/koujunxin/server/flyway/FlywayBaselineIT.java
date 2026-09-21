@@ -8,6 +8,7 @@ import com.koujunxin.member.api.port.DeptAccessPort;
 import com.koujunxin.member.api.port.HostDeptPort;
 import com.koujunxin.member.api.port.MemberAuditPort;
 import com.koujunxin.server.support.InfraContainers;
+import com.koujunxin.work.port.EntitlementQueryPort;
 import com.koujunxin.work.port.WorkAuditPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ class FlywayBaselineIT {
     @Autowired
     private BoundMemberQueryPort boundMembers;
 
+    @Autowired
+    private EntitlementQueryPort entitlementQueries;
+
     @Test
     void ruoyiBaselineAndKjxRolesMigrated() {
         Integer roles = jdbcTemplate.queryForObject(
@@ -87,7 +91,7 @@ class FlywayBaselineIT {
         assertTrue(versions.containsAll(List.of(
                 "100", "101", "102",
                 "200", "201", "202",
-                "300", "301", "302", "303",
+                "300", "301", "302", "303", "330", "331",
                 "400", "401", "402")));
         assertTrue(versions.containsAll(List.of(
                 "700", "701", "702", "703", "704", "705", "706", "707", "708")));
@@ -101,6 +105,7 @@ class FlywayBaselineIT {
         assertTrue(memberAudit.getClass().getName().contains("server.integration"));
         assertTrue(workAudit.getClass().getName().contains("server.integration"));
         assertTrue(boundMembers.getClass().getName().contains("JdbcBoundMemberQueryPort"));
+        assertTrue(entitlementQueries.getClass().getName().contains("JdbcEntitlementQueryPort"));
     }
 
     @Test

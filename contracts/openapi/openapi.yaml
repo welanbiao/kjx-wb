@@ -139,6 +139,8 @@ paths:
     $ref: "./paths/admin-ops.yaml#/handleAppeal"
   /admin-api/kjx/unlock-record/page:
     $ref: "./paths/admin-ops.yaml#/unlockRecordPage"
+  /admin-api/kjx/unlock-record/export:
+    $ref: "./paths/admin-ops.yaml#/unlockRecordExport"
   /admin-api/kjx/work/page:
     $ref: "./paths/admin-ops.yaml#/adminWorkPage"
   /admin-api/kjx/work:

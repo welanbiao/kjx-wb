@@ -14,7 +14,7 @@
   <artifactId>kjx-member</artifactId>
   <packaging>jar</packaging>
   <name>kjx-member</name>
-  <description>会员：主播扩展 / 三要素绑定 / 审核 / 申诉 / 额度重算</description>
+  <description>会员：主播扩展 / 三要素绑定 / 审核 / 申诉 / 额度重算 / 权益与原子解锁</description>
 
   <dependencies>
     <dependency>
@@ -40,6 +40,14 @@
     <dependency>
       <groupId>com.koujunxin</groupId>
       <artifactId>kjx-account</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>kjx-work</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>kjx-runtime-api</artifactId>
     </dependency>
 
     <dependency>

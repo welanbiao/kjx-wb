@@ -8,7 +8,7 @@ listWorks:
       公开列表仅含 PUBLISHED/GRAY，并经同一 WorkVisibilityService 过滤。
       GRAY 分桶对同一 accountId+workId 跨进程稳定。
       unlocked=true 时包含当前账号已解锁但已下架的作品。
-      本包不实现解锁；POST /app/works/{workCode}/unlock 由 WP-13 实现，且必须调用同一可见性服务。
+      本包列表/详情已通过 EntitlementQueryPort 短路；POST /app/works/{workCode}/unlock 与 GET /app/entitlements 由 WP-13 实现，且必须调用同一可见性服务。
     security:
       - AppBearer: []
     parameters:

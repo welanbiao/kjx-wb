@@ -61,8 +61,11 @@ public class DomainIntegrationAutoConfiguration {
     @Bean
     @ConditionalOnBean({AuditLogWritePort.class, RequestContextPort.class})
     @ConditionalOnMissingBean(MemberAuditPort.class)
-    MemberAuditPort memberAuditPort(AuditLogWritePort audit, RequestContextPort contexts) {
-        return new MemberAuditAdapter(audit, contexts);
+    MemberAuditPort memberAuditPort(
+            AuditLogWritePort audit,
+            RequestContextPort contexts,
+            ObjectProvider<com.koujunxin.log.api.port.SecLogWritePort> securityLogs) {
+        return new MemberAuditAdapter(audit, contexts, securityLogs);
     }
 
     @Bean

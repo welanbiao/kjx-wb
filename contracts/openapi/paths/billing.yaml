@@ -1,0 +1,59 @@
+getWallet:
+  get:
+    tags: [Billing]
+    operationId: getWallet
+    summary: 查询由账本派生的可用余额
+    parameters:
+      - name: memberId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      "200":
+        description: 可用余额
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/billing.yaml#/WalletBalance"
+
+acceptPayment:
+  post:
+    tags: [Billing]
+    operationId: acceptPayment
+    summary: 支付回调验签后入账
+    description: 验签失败不入账。相同幂等键且摘要一致只入账一次；摘要不同返回 1090。
+    parameters:
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/billing.yaml#/PaymentNotice"
+    responses:
+      "200":
+        description: 已入账或幂等重放
+      "409":
+        description: 同键异参
+
+saveByokCredential:
+  post:
+    tags: [Channel]
+    operationId: saveByokCredential
+    summary: 保存 BYOK 凭据引用
+    description: 服务端只存 secretRef。明文 Key 被拒绝且不回显。
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/billing.yaml#/ByokCredentialRequest"
+    responses:
+      "200":
+        description: 已保存引用

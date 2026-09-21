@@ -22,7 +22,8 @@ public final class InfraContainers {
             .withCommand(
                     "--character-set-server=utf8mb4",
                     "--collation-server=utf8mb4_0900_ai_ci",
-                    "--default-time-zone=+08:00")
+                    "--default-time-zone=+08:00",
+                    "--log-bin-trust-function-creators=1")
             .waitingFor(Wait.forListeningPort())
             .withStartupTimeout(Duration.ofMinutes(3));
 

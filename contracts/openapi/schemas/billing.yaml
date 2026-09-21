@@ -1,0 +1,80 @@
+ChannelMode:
+  type: string
+  enum:
+    - PLATFORM
+    - BYOK
+
+WalletBalance:
+  type: object
+  additionalProperties: false
+  required:
+    - memberId
+    - available
+  properties:
+    memberId:
+      type: integer
+      format: int64
+    available:
+      type: string
+      description: 由 MySQL 账本派生的可用余额，十进制字符串，最多 6 位小数。
+
+PaymentNotice:
+  type: object
+  additionalProperties: false
+  required:
+    - provider
+    - outTradeNo
+    - amount
+    - memberId
+    - idempotencyKey
+    - signature
+  properties:
+    provider:
+      type: string
+      enum:
+        - ALIPAY
+        - WECHAT
+    outTradeNo:
+      type: string
+      maxLength: 64
+    amount:
+      type: string
+    memberId:
+      type: integer
+      format: int64
+    idempotencyKey:
+      type: string
+      maxLength: 64
+    providerTradeNo:
+      type: string
+      maxLength: 64
+    signature:
+      type: string
+      description: 回调验签值。密钥不得出现在契约示例中。
+
+ChannelPreference:
+  type: object
+  additionalProperties: false
+  properties:
+    workMode:
+      $ref: "#/ChannelMode"
+    memberMode:
+      $ref: "#/ChannelMode"
+    platformMode:
+      $ref: "#/ChannelMode"
+
+ByokCredentialRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - provider
+    - secretRef
+    - endpointHost
+  properties:
+    provider:
+      type: string
+    secretRef:
+      type: string
+      description: 只接受 ref: 引用，拒绝明文 Key。
+    endpointHost:
+      type: string

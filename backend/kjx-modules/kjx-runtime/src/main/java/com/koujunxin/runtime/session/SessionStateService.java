@@ -186,6 +186,7 @@ public final class SessionStateService implements SessionStateQueryPort, Session
                 }
                 nextJson = CanonicalJson.write(inner);
             }
+            case "TOOL_PATCH" -> nextJson = CanonicalJson.write(CanonicalJson.object(payload));
             case "END" -> {
                 nextJson = CanonicalJson.mergePatch(row.payloadJson(), "{\"ended\":true}");
             }

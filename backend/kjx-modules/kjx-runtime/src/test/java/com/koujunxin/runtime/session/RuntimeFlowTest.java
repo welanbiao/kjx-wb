@@ -98,6 +98,16 @@ class RuntimeFlowTest {
     }
 
     @Test
+    void toolPatchReplacesSessionPayload() {
+        RuntimeHarness harness = new RuntimeHarness().entitle(11L, "phone-demo");
+        Map<String, Object> created = harness.app.createSession(11L, "phone-demo");
+        String sessionId = (String) created.get("sessionId");
+        harness.app.apply(11L, sessionId, "phone-demo", new StateMutation(
+                "TOOL_PATCH", "1", "{\"flags\":{},\"reached\":[\"1\"],\"stack\":[\"home\"],\"score\":3}"));
+        assertTrue(harness.sessions.load(new SessionRef(sessionId, "phone-demo")).payloadJson().contains("\"score\":3"));
+    }
+
+    @Test
     void schemaMismatchOnMutation() {
         RuntimeHarness harness = new RuntimeHarness().entitle(11L, "phone-demo");
         Map<String, Object> created = harness.app.createSession(11L, "phone-demo");

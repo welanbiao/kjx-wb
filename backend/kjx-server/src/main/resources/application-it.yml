@@ -12,6 +12,9 @@ spring:
       mode: never
 
 kjx:
+  log:
+    clickhouse:
+      enabled: false
   sms:
     mode: stub
 

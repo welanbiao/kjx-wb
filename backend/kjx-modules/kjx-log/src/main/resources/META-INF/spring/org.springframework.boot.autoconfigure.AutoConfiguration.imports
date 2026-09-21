@@ -1,0 +1,3 @@
+com.koujunxin.log.config.LogAutoConfiguration
+com.koujunxin.log.config.LogMysqlAutoConfiguration
+com.koujunxin.log.config.LogProjectionAutoConfiguration

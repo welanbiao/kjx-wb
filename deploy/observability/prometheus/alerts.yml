@@ -1,0 +1,60 @@
+groups:
+  - name: kjx-outbox-and-cost
+    rules:
+      - alert: KjxOutboxBacklog
+        expr: kjx_outbox_backlog > 100000
+        for: 5m
+        labels:
+          severity: P0
+        annotations:
+          summary: Outbox 积压超过 10 万条
+          description: 当前积压 {{ $value }}，分析投影或通知投递停滞。
+
+      - alert: KjxOutboxBacklogStale
+        expr: kjx_outbox_backlog > 0
+        for: 5m
+        labels:
+          severity: P0
+        annotations:
+          summary: Outbox 积压持续超过 5 分钟
+          description: 仍有 {{ $value }} 条 PENDING/PROCESSING。
+
+      - alert: KjxOutboxDead
+        expr: kjx_outbox_dead > 0
+        for: 1m
+        labels:
+          severity: P1
+        annotations:
+          summary: Outbox 出现 DEAD 事件
+          description: DEAD={{ $value }}，需人工 recoverDead 后重放。
+
+      - alert: KjxOutboxPublishErrors
+        expr: increase(kjx_outbox_publish_errors_total[5m]) > 0
+        labels:
+          severity: P1
+        annotations:
+          summary: Outbox 发布错误增加
+
+      - alert: KjxClickHouseProjectionErrors
+        expr: increase(kjx_log_projection_errors_total[5m]) > 0
+        labels:
+          severity: P1
+        annotations:
+          summary: ClickHouse 投影失败
+          description: ClickHouse 不可达时业务仍应成功；本告警只表示分析积压。
+
+      - alert: KjxHttpErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001) > 0.02
+        for: 5m
+        labels:
+          severity: P1
+        annotations:
+          summary: 5xx 占比超过 2%
+
+      - alert: KjxAiCostSpike
+        expr: increase(kjx_ai_cost_amount_total[1h]) > 100
+        labels:
+          severity: P2
+        annotations:
+          summary: AI 成本小时增量超过阈值
+          description: 过去 1 小时成本 {{ $value }}，请核对用量与通道。

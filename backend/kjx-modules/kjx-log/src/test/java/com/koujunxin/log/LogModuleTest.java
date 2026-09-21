@@ -10,6 +10,7 @@ class LogModuleTest {
     @Test
     void moduleNameIsStable() {
         assertEquals("kjx-log", LogModule.NAME);
+        assertEquals("1.0", LogModule.SCHEMA_VERSION);
         assertNotNull(LogModule.class.getPackage());
     }
 }

@@ -2,7 +2,13 @@ package com.koujunxin.server.flyway;
 
 import java.util.List;
 
+import com.koujunxin.account.api.port.BoundMemberQueryPort;
+import com.koujunxin.member.api.port.AccountBindingCommandPort;
+import com.koujunxin.member.api.port.DeptAccessPort;
+import com.koujunxin.member.api.port.HostDeptPort;
+import com.koujunxin.member.api.port.MemberAuditPort;
 import com.koujunxin.server.support.InfraContainers;
+import com.koujunxin.work.port.WorkAuditPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
@@ -27,6 +34,24 @@ class FlywayBaselineIT {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private AccountBindingCommandPort accountBindingCommands;
+
+    @Autowired
+    private HostDeptPort hostDepartments;
+
+    @Autowired
+    private DeptAccessPort deptAccess;
+
+    @Autowired
+    private MemberAuditPort memberAudit;
+
+    @Autowired
+    private WorkAuditPort workAudit;
+
+    @Autowired
+    private BoundMemberQueryPort boundMembers;
 
     @Test
     void ruoyiBaselineAndKjxRolesMigrated() {
@@ -62,7 +87,42 @@ class FlywayBaselineIT {
         assertTrue(versions.containsAll(List.of(
                 "100", "101", "102",
                 "200", "201", "202",
+                "300", "301", "302", "303",
                 "400", "401", "402")));
+        assertTrue(versions.containsAll(List.of(
+                "700", "701", "702", "703", "704", "705", "706", "707", "708")));
+    }
+
+    @Test
+    void compositionRootOverridesAllProductionPlaceholders() {
+        assertTrue(accountBindingCommands.getClass().getName().contains("server.integration"));
+        assertTrue(hostDepartments.getClass().getName().contains("server.integration"));
+        assertTrue(deptAccess.getClass().getName().contains("server.integration"));
+        assertTrue(memberAudit.getClass().getName().contains("server.integration"));
+        assertTrue(workAudit.getClass().getName().contains("server.integration"));
+        assertTrue(boundMembers.getClass().getName().contains("JdbcBoundMemberQueryPort"));
+    }
+
+    @Test
+    void accountBindingFailuresIncrementAtomicallyAndLockAtThree() {
+        jdbcTemplate.update(
+                """
+                INSERT INTO kjx_account
+                  (phone, phone_hash, password_hash, nickname, status, bind_status)
+                VALUES ('cipher', 'integration-bind-hash', 'hash', 'integration', 1, 0)
+                """);
+        Long accountId = jdbcTemplate.queryForObject(
+                "SELECT id FROM kjx_account WHERE phone_hash = 'integration-bind-hash'",
+                Long.class);
+        assertNotNull(accountId);
+
+        accountBindingCommands.recordFailure(accountId, 1, null);
+        accountBindingCommands.recordFailure(accountId, 1, null);
+        accountBindingCommands.recordFailure(accountId, 1, null);
+
+        var state = accountBindingCommands.find(accountId).orElseThrow();
+        assertEquals(3, state.bindFailCount());
+        assertNotNull(state.bindLockedUntil());
     }
 
     @Test

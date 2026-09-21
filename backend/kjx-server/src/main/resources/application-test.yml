@@ -21,6 +21,9 @@ spring:
     url: ""
 
 kjx:
+  log:
+    clickhouse:
+      enabled: false
   captcha:
     enabled: false
   sms:

@@ -1,0 +1,11 @@
+<!-- kjx-server 可选 include。未合入前不要放到默认 logback-spring.xml。 -->
+<included>
+  <property name="KJX_LOG_PATTERN"
+            value="%d{yyyy-MM-dd HH:mm:ss.SSSXXX, Asia/Shanghai} %-5level [%X{trace_id:-}] [%X{request_id:-}] [%X{span_id:-}] %logger{36} - %msg%n"/>
+  <appender name="KJX_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${KJX_LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+</included>

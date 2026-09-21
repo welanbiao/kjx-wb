@@ -101,6 +101,16 @@ captcha:
 kjx:
   jdbc:
     timezone: Asia/Shanghai
+  member:
+    host-root-dept-id: ${KJX_HOST_ROOT_DEPT_ID:200}
+  log:
+    redact-enabled: true
+    clickhouse:
+      enabled: ${KJX_CLICKHOUSE_ENABLED:false}
+      url: ${CLICKHOUSE_URL:http://127.0.0.1:8123}
+      username: ${CLICKHOUSE_USERNAME:default}
+      password: ${CLICKHOUSE_PASSWORD:}
+      timeout-ms: ${CLICKHOUSE_TIMEOUT_MS:2000}
   captcha:
     enabled: ${KJX_CAPTCHA_ENABLED:true}
     prefix: ${KJX_CAPTCHA_PREFIX:captcha}
@@ -122,7 +132,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
@@ -133,8 +143,13 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSSXXX, Asia/Shanghai} %-5level [%X{trace_id:-}] [%X{request_id:-}] %logger{36} - %msg%n"
   level:
     com.koujunxin: INFO
     org.dromara: INFO

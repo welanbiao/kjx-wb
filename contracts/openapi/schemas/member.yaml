@@ -698,6 +698,7 @@ CreateHostRequest:
   required:
     - hostCode
     - hostName
+    - adminUserId
     - reason
   properties:
     hostCode:
@@ -705,13 +706,14 @@ CreateHostRequest:
     hostName:
       type: string
       minLength: 1
-      maxLength: 64
+      maxLength: 30
     parentDeptId:
       type: integer
       format: int64
     adminUserId:
       type: integer
       format: int64
+      minimum: 1
       description: 关联的后台账号 sys_user.id。
     dyAccount:
       type: string
@@ -736,7 +738,7 @@ UpdateHostRequest:
   properties:
     hostName:
       type: string
-      maxLength: 64
+      maxLength: 30
     dyAccount:
       type: string
       maxLength: 128

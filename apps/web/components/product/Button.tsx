@@ -5,6 +5,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "solid" | "ghost";
   loading?: boolean;
+  pendingLabel?: string;
   success?: boolean;
   children: ReactNode;
 };
@@ -13,6 +14,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
   {
     variant = "solid",
     loading = false,
+    pendingLabel = "提交中…",
     success = false,
     children,
     disabled,
@@ -32,7 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       data-success={success || undefined}
       {...rest}
     >
-      {loading ? "提交中…" : children}
+      {loading ? pendingLabel : children}
     </button>
   );
 });

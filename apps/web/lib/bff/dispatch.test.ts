@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiMode, dispatchBff } from "@/lib/bff/dispatch";
 import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE } from "@/lib/session";
+import { buildSliderTrackAtPercentage } from "@/lib/captcha/track";
+import type { CaptchaChallenge } from "@/lib/captcha/types";
+import { MOCK_SLIDER_PERCENTAGE } from "@/lib/mock/captcha";
 import { resetStore } from "@/lib/mock/store";
 
 afterEach(() => {
@@ -65,23 +68,36 @@ async function bootstrap(): Promise<Jar> {
   return jar;
 }
 
+async function solveCaptcha(jar: Jar) {
+  const challenge = await call("/app/auth/captcha?type=SLIDER", { method: "GET" }, jar);
+  expect(challenge.json.code).toBe(0);
+  const data = challenge.json.data as CaptchaChallenge;
+  expect(JSON.stringify(data).toLowerCase()).not.toMatch(/percentage|secret|answer|targetx/);
+  return {
+    jar: challenge.jar,
+    captchaId: data.id,
+    captchaData: buildSliderTrackAtPercentage(data, MOCK_SLIDER_PERCENTAGE),
+  };
+}
+
 async function registerPhone(phone: string, jar: Jar) {
+  const solved = await solveCaptcha(jar);
   const send = await call(
     "/app/auth/send-code",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        [CSRF_HEADER]: jar[CSRF_COOKIE],
+        [CSRF_HEADER]: solved.jar[CSRF_COOKIE],
       },
       body: JSON.stringify({
         phone,
         scene: "register",
-        captchaId: "mock-captcha",
-        captchaData: { passed: true },
+        captchaId: solved.captchaId,
+        captchaData: solved.captchaData,
       }),
     },
-    jar,
+    solved.jar,
   );
   expect(send.json.code).toBe(0);
   const registered = await call(
@@ -205,6 +221,23 @@ describe("live BFF safety", () => {
     expect(logout.response.status).toBe(200);
     expect(logout.jar[SESSION_COOKIE]).toBeUndefined();
     expect(logout.response.headers.get("set-cookie")).toContain("Max-Age=0");
+    const loginInit = upstreamFetch.mock.calls[0]?.[1] as RequestInit;
+    const loginHeaders = new Headers(loginInit.headers);
+    expect(loginHeaders.get("cookie")).toBeNull();
+    expect(loginHeaders.get(CSRF_HEADER)).toBeNull();
+    const logoutInit = upstreamFetch.mock.calls[1]?.[1] as RequestInit;
+    const logoutHeaders = new Headers(logoutInit.headers);
+    expect(logoutHeaders.get("Authorization")).toBe("Bearer upstream-secret");
+    expect(logoutHeaders.get("cookie")).toBeNull();
+  });
+
+  it("fails loud when production live origin is missing", async () => {
+    process.env.KJX_API_MODE = "live";
+    delete process.env.KJX_API_ORIGIN;
+    const jar = await bootstrap();
+    const result = await call("/app/account/profile", { method: "GET", headers: mutatingHeaders(jar) }, jar);
+    expect(result.response.status).toBe(500);
+    expect(String(result.json.msg)).toMatch(/KJX_API_ORIGIN/);
   });
 });
 
@@ -351,5 +384,42 @@ describe("mock member journey", () => {
     );
     expect(result.json.code).toBe(1001);
     expect(String(result.json.msg)).not.toMatch(/抖音|月数|编码错/);
+  });
+
+  it("rejects a wrong slider track and consumes the captcha id", async () => {
+    const jar = await bootstrap();
+    const challenge = await call("/app/auth/captcha?type=SLIDER", { method: "GET" }, jar);
+    const data = challenge.json.data as CaptchaChallenge;
+    const bad = await call(
+      "/app/auth/send-code",
+      {
+        method: "POST",
+        headers: mutatingHeaders(challenge.jar),
+        body: JSON.stringify({
+          phone: "13800138999",
+          scene: "register",
+          captchaId: data.id,
+          captchaData: buildSliderTrackAtPercentage(data, 0.05),
+        }),
+      },
+      challenge.jar,
+    );
+    expect(bad.json.code).toBe(400);
+    expect(String(bad.json.msg)).toMatch(/图形验证码/);
+    const replay = await call(
+      "/app/auth/send-code",
+      {
+        method: "POST",
+        headers: mutatingHeaders(bad.jar),
+        body: JSON.stringify({
+          phone: "13800138999",
+          scene: "register",
+          captchaId: data.id,
+          captchaData: buildSliderTrackAtPercentage(data, MOCK_SLIDER_PERCENTAGE),
+        }),
+      },
+      bad.jar,
+    );
+    expect(replay.json.code).toBe(400);
   });
 });

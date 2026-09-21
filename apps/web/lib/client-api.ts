@@ -1,7 +1,11 @@
 import { apiFetch } from "@/lib/api";
+import { isMockToolsEnabled } from "@/lib/flags";
+import type { CaptchaChallenge, FrozenCaptcha } from "@/lib/captcha/types";
 import type {
   AccountProfile,
   BindingStatusData,
+  CancelAccountData,
+  DeviceItem,
   EntitlementItem,
   HostOption,
   LoginData,
@@ -20,7 +24,14 @@ function idemKey(): string {
 
 export const clientApi = {
   csrf: () => apiFetch<{ csrfToken: string }>("/app/auth/csrf"),
-  sendCode: (body: { phone: string; scene: "register" | "login" | "reset_pwd" | "cancel"; captchaId: string; captchaData: Record<string, unknown> }) =>
+  getCaptcha: (type: "SLIDER" = "SLIDER") =>
+    apiFetch<CaptchaChallenge>(`/app/auth/captcha?type=${encodeURIComponent(type)}`),
+  sendCode: (body: {
+    phone: string;
+    scene: "register" | "login" | "reset_pwd" | "cancel";
+    captchaId: string;
+    captchaData: FrozenCaptcha["captchaData"];
+  }) =>
     apiFetch<{ expireIn: number }>("/app/auth/send-code", {
       method: "POST",
       body: JSON.stringify(body),
@@ -45,6 +56,7 @@ export const clientApi = {
       idempotencyKey: idemKey(),
     }),
   logout: () => apiFetch<Record<string, never>>("/app/auth/logout", { method: "POST" }),
+  refresh: () => apiFetch<LoginData>("/app/auth/refresh", { method: "POST" }),
   resetPassword: (body: { phone: string; code: string; newPassword: string }) =>
     apiFetch<Record<string, never>>("/app/auth/reset-password", {
       method: "POST",
@@ -54,6 +66,25 @@ export const clientApi = {
   profile: () => apiFetch<AccountProfile>("/app/account/profile"),
   updateProfile: (body: { nickname?: string; avatar?: string }) =>
     apiFetch<AccountProfile>("/app/account/profile", { method: "PUT", body: JSON.stringify(body) }),
+  changePassword: (body: { oldPassword: string; newPassword: string }) =>
+    apiFetch<Record<string, never>>("/app/account/password", {
+      method: "PUT",
+      body: JSON.stringify(body),
+      idempotencyKey: idemKey(),
+    }),
+  devices: () => apiFetch<DeviceItem[]>("/app/account/devices"),
+  deleteDevice: (id: number) =>
+    apiFetch<Record<string, never>>(`/app/account/devices/${id}`, {
+      method: "DELETE",
+      idempotencyKey: idemKey(),
+    }),
+  cancelAccount: (body: { code: string; reason?: string }) =>
+    apiFetch<CancelAccountData>("/app/account/cancel", {
+      method: "POST",
+      body: JSON.stringify(body),
+      idempotencyKey: idemKey(),
+    }),
+  revokeCancel: () => apiFetch<Record<string, never>>("/app/account/cancel/revoke", { method: "POST" }),
   hosts: () => apiFetch<HostOption[]>("/app/member/hosts"),
   binding: () => apiFetch<BindingStatusData>("/app/member/binding"),
   memberProfile: () => apiFetch<MemberSnapshot | null>("/app/member/profile"),
@@ -69,10 +100,12 @@ export const clientApi = {
       body: JSON.stringify(body),
       idempotencyKey: idemKey(),
     }),
-  works: (query?: { workType?: string; unlocked?: boolean }) => {
+  works: (query?: { workType?: string; unlocked?: boolean; pageNo?: number; pageSize?: number }) => {
     const params = new URLSearchParams();
     if (query?.workType) params.set("workType", query.workType);
     if (typeof query?.unlocked === "boolean") params.set("unlocked", String(query.unlocked));
+    if (query?.pageNo) params.set("pageNo", String(query.pageNo));
+    if (query?.pageSize) params.set("pageSize", String(query.pageSize));
     const suffix = params.toString() ? `?${params.toString()}` : "";
     return apiFetch<PageResult<WorkSummary>>(`/app/works${suffix}`);
   },
@@ -82,12 +115,16 @@ export const clientApi = {
       method: "POST",
       idempotencyKey: idemKey(),
     }),
-  entitlements: () => apiFetch<PageResult<EntitlementItem>>("/app/entitlements"),
+  entitlements: (query?: { pageNo?: number; pageSize?: number }) => {
+    const params = new URLSearchParams();
+    if (query?.pageNo) params.set("pageNo", String(query.pageNo));
+    if (query?.pageSize) params.set("pageSize", String(query.pageSize));
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return apiFetch<PageResult<EntitlementItem>>(`/app/entitlements${suffix}`);
+  },
   mockApproveBinding: () =>
     apiFetch<SubmitBindingData>("/app/_mock/approve-binding", { method: "POST" }),
   mockReset: () => apiFetch<{ reset: boolean }>("/app/_mock/reset", { method: "POST" }),
 };
 
-export function isMockToolsEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_ENABLE_MOCK_TOOLS === "true";
-}
+export { isMockToolsEnabled };

@@ -2,6 +2,7 @@ import { CSRF_COOKIE, CSRF_HEADER, DEVICE_COOKIE, SESSION_COOKIE } from "@/lib/s
 import { createCsrfToken, csrfTokensMatch } from "@/lib/csrf";
 import { applyCookies, parseCookieHeader, serializeCookie } from "@/lib/bff/cookies";
 import { fail, newRequestId, ok } from "@/lib/bff/envelope";
+import { stripUpstreamHeaders } from "@/lib/bff/headers";
 import { shouldStripToken, takeAuthToken } from "@/lib/bff/strip-token";
 import { accountFromToken, handleMock } from "@/lib/mock/handlers";
 
@@ -140,7 +141,7 @@ async function proxyLive(
   if (pathname === LOGOUT_PATH && upstream.ok) {
     attachSessionCookie(extras.setCookies, null);
   }
-  const upstreamHeaders = safeUpstreamHeaders(upstream.headers, requestId);
+  const upstreamHeaders = stripUpstreamHeaders(upstream.headers, requestId);
   const contentType = upstream.headers.get("Content-Type") ?? "";
   if (!contentType.includes("json")) {
     const text = await upstream.text();
@@ -158,16 +159,4 @@ async function proxyLive(
     headers: upstreamHeaders,
   });
   return stripAuthResponse(pathname, safeUpstream, extras.setCookies);
-}
-
-function safeUpstreamHeaders(source: Headers, requestId: string): Headers {
-  const headers = new Headers(source);
-  for (const name of ["content-encoding", "content-length", "set-cookie", "transfer-encoding"]) {
-    headers.delete(name);
-  }
-  headers.set("X-Request-Id", requestId);
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "text/plain; charset=utf-8");
-  }
-  return headers;
 }

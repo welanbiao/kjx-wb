@@ -554,3 +554,82 @@ body {
     transition: none !important;
   }
 }
+
+.kjx-captcha-board {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--kjx-line);
+  background: rgb(8 33 44 / 0.7);
+  border-radius: 10px;
+}
+
+.kjx-captcha-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #08212c;
+}
+
+.kjx-captcha-bg {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.kjx-captcha-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: auto;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.kjx-captcha-rail {
+  position: relative;
+  height: var(--kjx-touch);
+  border-radius: 999px;
+  border: 1px solid var(--kjx-line);
+  background: linear-gradient(90deg, rgb(19 135 192 / 0.35), rgb(244 82 13 / 0.18));
+}
+
+.kjx-captcha-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  min-width: var(--kjx-touch);
+  min-height: var(--kjx-touch);
+  padding: 0 0.55rem;
+  border: 1px solid var(--kjx-accent);
+  border-radius: 999px;
+  background: var(--kjx-accent);
+  color: var(--kjx-cream);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.kjx-captcha-handle:active {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kjx-captcha-piece,
+  .kjx-captcha-handle {
+    transition: transform 80ms linear;
+  }
+
+  .kjx-captcha-handle[aria-busy="true"],
+  .kjx-captcha-handle:active {
+    transition: none;
+  }
+}

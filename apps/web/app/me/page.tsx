@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, StatusBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
@@ -51,6 +51,17 @@ export default function MePage() {
   });
 
   const data = state.kind === "ok" ? state.data : null;
+  const pending = data?.binding.status === "PENDING_REVIEW";
+
+  useEffect(() => {
+    if (!pending) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void reload();
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [pending, reload]);
 
   return (
     <AppShell variant="task">
@@ -66,10 +77,25 @@ export default function MePage() {
               <div className="kjx-grid">
                 <article className="kjx-card">
                   <h2>{COPY.account}</h2>
-                  <p>{data.profile.nickname || "未设置昵称"}</p>
+                  <NicknameForm
+                    nickname={data.profile.nickname}
+                    onSaved={async (message) => {
+                      setSuccess(message);
+                      await reload();
+                    }}
+                    onError={setActionError}
+                  />
                   <p className="kjx-hint">{data.profile.phoneMask}</p>
                   <p className="kjx-hint">绑定 {bindStatusNumberLabel(data.profile.bindStatus)}</p>
                   <p className="kjx-hint">创建时间 {formatApiTime(data.profile.createTime)}</p>
+                  {data.profile.status === 3 ? (
+                    <StatusBanner>
+                      账号注销中{data.profile.cancelApplyAt ? ` · 申请于 ${formatApiTime(data.profile.cancelApplyAt)}` : ""}
+                    </StatusBanner>
+                  ) : null}
+                  <p className="kjx-hint">
+                    <Link href="/me/security">{COPY.security}</Link>
+                  </p>
                 </article>
                 <article className="kjx-card">
                   <h2>{COPY.member}</h2>
@@ -110,6 +136,7 @@ export default function MePage() {
                   await reload();
                 }}
                 onError={setActionError}
+                onRefresh={() => void reload()}
               />
             </>
           ) : null}
@@ -119,16 +146,56 @@ export default function MePage() {
   );
 }
 
+function NicknameForm({
+  nickname,
+  onSaved,
+  onError,
+}: {
+  nickname: string | null;
+  onSaved: (message: string) => Promise<void>;
+  onError: (error: unknown) => void;
+}) {
+  const [value, setValue] = useState(nickname ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    onError(undefined);
+    try {
+      await clientApi.updateProfile({ nickname: value });
+      await onSaved("昵称已更新");
+    } catch (err) {
+      onError(err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="kjx-form" onSubmit={onSubmit}>
+      <Field id="me-nickname" label={COPY.nickname}>
+        <TextInput id="me-nickname" maxLength={64} value={value} onChange={(event) => setValue(event.target.value)} />
+      </Field>
+      <Button type="submit" variant="ghost" loading={saving} disabled={!value.trim()}>
+        {COPY.nicknameSave}
+      </Button>
+    </form>
+  );
+}
+
 function BindingPanel({
   binding,
   hosts,
   onChanged,
   onError,
+  onRefresh,
 }: {
   binding: BindingStatusData;
   hosts: HostOption[];
   onChanged: (message: string) => Promise<void>;
   onError: (error: unknown) => void;
+  onRefresh: () => void;
 }) {
   const [hostCode, setHostCode] = useState(hosts[0]?.hostCode ?? "");
   const [douyinId, setDouyinId] = useState("");
@@ -136,6 +203,7 @@ function BindingPanel({
   const [claimMonths, setClaimMonths] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [appealType, setAppealType] = useState<"CHANGE_DOUYIN" | "WRONG_BIND" | "OTHER">("OTHER");
   const [appealContent, setAppealContent] = useState("");
   const [appealing, setAppealing] = useState(false);
 
@@ -175,7 +243,7 @@ function BindingPanel({
     setAppealing(true);
     onError(undefined);
     try {
-      await clientApi.appeal({ appealType: "OTHER", content: appealContent });
+      await clientApi.appeal({ appealType, content: appealContent });
       await onChanged("申诉已提交");
       setAppealContent("");
     } catch (err) {
@@ -192,6 +260,11 @@ function BindingPanel({
         当前状态 {bindingStatusLabel(binding.status)}
         {binding.submitAt ? ` · 提交于 ${formatApiTime(binding.submitAt)}` : ""}
       </p>
+      <div className="kjx-actions">
+        <Button variant="ghost" onClick={onRefresh}>
+          {COPY.refreshBinding}
+        </Button>
+      </div>
       {binding.status === "NONE" || binding.status === "REJECTED" ? (
         <>
           {binding.status === "REJECTED" ? (
@@ -240,6 +313,7 @@ function BindingPanel({
       {binding.status === "PENDING_REVIEW" ? (
         <div>
           <StatusBanner>{COPY.pending}</StatusBanner>
+          <p className="kjx-hint">{COPY.polling}</p>
           {isMockToolsEnabled() ? (
             <>
               <p className="kjx-hint">{COPY.mockApproveHint}</p>
@@ -255,6 +329,17 @@ function BindingPanel({
       ) : null}
       {binding.status === "UNBINDING" ? <StatusBanner>{COPY.unbinding}</StatusBanner> : null}
       <div className="kjx-form" style={{ marginTop: "1rem" }}>
+        <Field id="appeal-type" label={COPY.appealType}>
+          <SelectInput
+            id="appeal-type"
+            value={appealType}
+            onChange={(event) => setAppealType(event.target.value as "CHANGE_DOUYIN" | "WRONG_BIND" | "OTHER")}
+          >
+            <option value="CHANGE_DOUYIN">更换抖音号</option>
+            <option value="WRONG_BIND">绑定有误</option>
+            <option value="OTHER">其他</option>
+          </SelectInput>
+        </Field>
         <Field id="appeal-content" label={COPY.appeal}>
           <TextArea id="appeal-content" value={appealContent} onChange={(event) => setAppealContent(event.target.value)} />
         </Field>

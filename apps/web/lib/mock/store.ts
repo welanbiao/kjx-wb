@@ -1,3 +1,4 @@
+import type { MockCaptchaRecord } from "@/lib/mock/captcha";
 import type {
   AccountProfile,
   BindingStatus,
@@ -69,8 +70,13 @@ export type MockEntitlement = {
 
 export type MockWork = WorkDetail;
 
+export type MockDevice = Omit<DeviceItem, "current"> & {
+  accountId: number;
+};
+
 export type MockStore = {
   nextAccountId: number;
+  nextDeviceId: number;
   accounts: MockAccount[];
   sessions: Map<string, { accountId: number; createdAt: number }>;
   sms: Map<string, { code: string; scene: string; expireAt: number }>;
@@ -79,7 +85,8 @@ export type MockStore = {
   works: MockWork[];
   entitlements: MockEntitlement[];
   hosts: HostOption[];
-  devices: DeviceItem[];
+  devices: MockDevice[];
+  captchas: Map<string, MockCaptchaRecord>;
   idempotency: Map<string, { hash: string; body: unknown; status: number }>;
   bindFailures: Map<number, { count: number; lockedUntil: number | null }>;
   autoReview: boolean;
@@ -186,6 +193,25 @@ const WORKS: MockWork[] = [
     entryUrl: null,
     publishTime: iso(-90),
   },
+  {
+    workCode: "gray-preview",
+    name: "灰度预演",
+    workType: "layout",
+    summary: "GRAY 作品。Mock 全员可见；live 由后端 CRC32 分桶，前端不计算。",
+    coverUrl: null,
+    category: "layout",
+    tags: ["灰度"],
+    status: "GRAY",
+    currentVersion: "0.8.0",
+    accessForm: "A",
+    unlocked: false,
+    unlockedAt: null,
+    screenshots: [],
+    allowedChannels: ["PLATFORM"],
+    contentVersion: "0.8.0",
+    entryUrl: null,
+    publishTime: iso(-5),
+  },
 ];
 
 function seedAccounts(): MockAccount[] {
@@ -239,9 +265,11 @@ export function createInitialStore(): MockStore {
   const expiredUnlockAt = iso(-30);
   return {
     nextAccountId: 10001,
+    nextDeviceId: 1,
     accounts: seedAccounts(),
     sessions: new Map(),
     sms: new Map(),
+    captchas: new Map(),
     members: [
       { ...SEEDED_VALID_MEMBER, boundAccountId: null },
       { ...SEEDED_EXPIRED_MEMBER, boundAccountId: 9001 },
@@ -383,6 +411,10 @@ export function bindStatusNumber(status: BindingStatus): 0 | 1 | 2 | 3 | 4 {
     default:
       return 0;
   }
+}
+
+export function daysFromNowIso(days: number, endOfDay = false): string {
+  return iso(days, endOfDay);
 }
 
 export function nowIso(): string {

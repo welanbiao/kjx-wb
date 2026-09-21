@@ -91,6 +91,9 @@ export function AppShell({ children, variant = "public" }: Props) {
               <Link className="kjx-btn kjx-btn-ghost" href="/me">
                 {profile.nickname || profile.phoneMask || COPY.profile}
               </Link>
+              <Link className="kjx-btn kjx-btn-ghost" href="/me/security">
+                {COPY.security}
+              </Link>
               <button type="button" className="kjx-btn kjx-btn-ghost" onClick={() => void onLogout()} disabled={loggingOut}>
                 {loggingOut ? "退出中…" : COPY.logout}
               </button>

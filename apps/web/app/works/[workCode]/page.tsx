@@ -71,7 +71,7 @@ export default function WorkDetailPage() {
   }
 
   const canEnter = Boolean(work?.unlocked && work.entryUrl);
-  const expired = member?.status === "EXPIRED";
+  const cannotUnlockNew = member?.status === "EXPIRED" || member?.status === "NOT_STARTED";
 
   return (
     <AppShell variant="task">
@@ -99,14 +99,16 @@ export default function WorkDetailPage() {
                   </span>
                 ))}
               </div>
-              {expired && !work.unlocked ? <p className="kjx-hint">{COPY.expiredHint}</p> : null}
+              {cannotUnlockNew && !work.unlocked ? (
+                <p className="kjx-hint">{member?.status === "NOT_STARTED" ? COPY.notStartedHint : COPY.expiredHint}</p>
+              ) : null}
               <div className="kjx-actions">
                 {canEnter ? (
                   <Link className="kjx-btn" href={work.entryUrl!}>
                     {work.workType === "game" ? "进入游戏游玩界面" : "进入会话界面"}
                   </Link>
                 ) : (
-                  <Button onClick={() => setConfirmOpen(true)} disabled={expired && !work.unlocked}>
+                  <Button onClick={() => setConfirmOpen(true)} disabled={cannotUnlockNew && !work.unlocked}>
                     {COPY.unlock}
                   </Button>
                 )}

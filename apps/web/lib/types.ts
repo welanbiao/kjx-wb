@@ -150,3 +150,16 @@ export type DeviceItem = {
   lastActiveAt: string | null;
   current: boolean;
 };
+
+export type CancelAccountData = {
+  cancelApplyAt: string;
+  effectiveAt: string;
+};
+
+export type {
+  CaptchaChallenge,
+  CaptchaType,
+  FrozenCaptcha,
+  ImageCaptchaTrack,
+  ImageCaptchaTrackPoint,
+} from "@/lib/captcha/types";

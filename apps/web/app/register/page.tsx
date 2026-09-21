@@ -7,8 +7,9 @@ import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
-import { CaptchaField, captchaPayload } from "@/components/product/CaptchaField";
+import { CaptchaField } from "@/components/product/CaptchaField";
 import { Field, TextInput } from "@/components/product/Field";
+import type { FrozenCaptcha } from "@/lib/captcha/types";
 import { clientApi } from "@/lib/client-api";
 import { COPY } from "@/lib/copy";
 
@@ -18,22 +19,28 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [agree, setAgree] = useState(false);
-  const [captcha, setCaptcha] = useState(false);
+  const [captcha, setCaptcha] = useState<FrozenCaptcha | null>(null);
+  const [captchaEpoch, setCaptchaEpoch] = useState(0);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   async function sendCode() {
+    if (!captcha) {
+      setError(new Error(COPY.captchaNeed));
+      return;
+    }
     setSending(true);
     setError(null);
     try {
-      await clientApi.sendCode({ phone, scene: "register", ...captchaPayload(captcha) });
+      await clientApi.sendCode({ phone, scene: "register", captchaId: captcha.captchaId, captchaData: captcha.captchaData });
       setSuccess(COPY.codeSent);
     } catch (err) {
       setError(err);
     } finally {
       setSending(false);
+      setCaptchaEpoch((value) => value + 1);
     }
   }
 
@@ -90,7 +97,7 @@ export default function RegisterPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </Field>
-          <CaptchaField checked={captcha} onChange={setCaptcha} disabled={sending} />
+          <CaptchaField value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
           <Field id="reg-code" label={COPY.smsCode}>
             <TextInput
               id="reg-code"
@@ -102,7 +109,14 @@ export default function RegisterPage() {
               onChange={(event) => setCode(event.target.value)}
             />
           </Field>
-          <Button type="button" variant="ghost" onClick={() => void sendCode()} loading={sending} disabled={!captcha || !phone}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void sendCode()}
+            loading={sending}
+            pendingLabel={COPY.sendingCode}
+            disabled={!captcha || !phone}
+          >
             {COPY.sendCode}
           </Button>
           <label className="kjx-check">

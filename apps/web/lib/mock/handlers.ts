@@ -1,6 +1,8 @@
 import { ERROR_MESSAGES } from "@/lib/errors";
+import { createMockCaptcha, verifyMockCaptchaTrack } from "@/lib/mock/captcha";
 import { badRequest, businessError, notFound, ok, unauthorized } from "@/lib/mock/http";
 import {
+  daysFromNowIso,
   entryUrlFor,
   getStore,
   MOCK_SMS_CODE,
@@ -144,6 +146,45 @@ export function accountFromToken(token: string | undefined): MockAccount | null 
   return store.accounts.find((item) => item.id === session.accountId) ?? null;
 }
 
+function deviceIdFrom(request: Request): string {
+  return request.headers.get("X-Device-Id")?.trim() || "web-unknown";
+}
+
+function rememberDevice(account: MockAccount, request: Request) {
+  const store = getStore();
+  const deviceId = deviceIdFrom(request);
+  const existing = store.devices.find((item) => item.accountId === account.id && item.deviceId === deviceId);
+  if (existing) {
+    existing.lastActiveAt = nowIso();
+    return;
+  }
+  store.devices.push({
+    id: store.nextDeviceId,
+    accountId: account.id,
+    deviceId,
+    deviceName: "Web 浏览器",
+    platform: "web",
+    lastRegion: null,
+    lastActiveAt: nowIso(),
+  });
+  store.nextDeviceId += 1;
+}
+
+function listDevices(accountId: number, request: Request) {
+  const currentId = deviceIdFrom(request);
+  return getStore()
+    .devices.filter((item) => item.accountId === accountId)
+    .map((item) => ({
+      id: item.id,
+      deviceId: item.deviceId,
+      deviceName: item.deviceName,
+      platform: item.platform,
+      lastRegion: item.lastRegion,
+      lastActiveAt: item.lastActiveAt,
+      current: item.deviceId === currentId,
+    }));
+}
+
 export async function handleMock(
   request: Request,
   pathname: string,
@@ -181,6 +222,16 @@ export async function handleMock(
     };
   }
 
+  if (pathname === "/app/auth/captcha" && method === "GET") {
+    const type = (url.searchParams.get("type") ?? "SLIDER").trim().toUpperCase();
+    if (type && type !== "SLIDER") {
+      return { response: badRequest(requestId, "不支持的图形验证码类型") };
+    }
+    const generated = createMockCaptcha();
+    store.captchas.set(generated.record.id, generated.record);
+    return { response: ok(requestId, generated.challenge) };
+  }
+
   if (pathname === "/app/auth/send-code" && method === "POST") {
     const body = await jsonBody(request);
     const phone = str(body.phone);
@@ -189,8 +240,10 @@ export async function handleMock(
     if (!PHONE.test(phone) || !["register", "login", "reset_pwd", "cancel"].includes(scene)) {
       return { response: badRequest(requestId, "手机号或场景无效") };
     }
-    if (!captchaId) {
-      return { response: badRequest(requestId, "请先完成图形验证") };
+    const record = store.captchas.get(captchaId);
+    store.captchas.delete(captchaId);
+    if (!verifyMockCaptchaTrack(record, body.captchaData)) {
+      return { response: badRequest(requestId, "图形验证码错误或已过期") };
     }
     store.sms.set(smsKey(phone, scene), {
       code: MOCK_SMS_CODE,
@@ -235,6 +288,7 @@ export async function handleMock(
     };
     store.nextAccountId += 1;
     store.accounts.push(created);
+    rememberDevice(created, request);
     const token = setSession(created);
     return {
       response: ok(requestId, { token, accountId: created.id }),
@@ -261,6 +315,7 @@ export async function handleMock(
       return { response: businessError(requestId, 1013) };
     }
     const token = setSession(found);
+    rememberDevice(found, request);
     const data = loginPayload(found);
     return {
       response: ok(requestId, { token, ...data }),
@@ -282,6 +337,7 @@ export async function handleMock(
     }
     store.sms.delete(smsKey(phone, "login"));
     const token = setSession(found);
+    rememberDevice(found, request);
     const data = loginPayload(found);
     return {
       response: ok(requestId, { token, ...data }),
@@ -294,6 +350,11 @@ export async function handleMock(
     if (denied) {
       return { response: denied };
     }
+    for (const [token, session] of store.sessions) {
+      if (session.accountId === account!.id) {
+        store.sessions.delete(token);
+      }
+    }
     return { response: ok(requestId, {}), sessionToken: null };
   }
 
@@ -303,6 +364,7 @@ export async function handleMock(
       return { response: denied };
     }
     const token = setSession(account!);
+    rememberDevice(account!, request);
     const data = loginPayload(account!);
     return { response: ok(requestId, { token, ...data }), sessionToken: token };
   }
@@ -349,6 +411,94 @@ export async function handleMock(
       account!.avatar = body.avatar.slice(0, 512);
     }
     return { response: ok(requestId, toProfile(account!)) };
+  }
+
+  if (pathname === "/app/account/password" && method === "PUT") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const body = await jsonBody(request);
+    const oldPassword = str(body.oldPassword);
+    const newPassword = str(body.newPassword);
+    if (account!.password !== oldPassword) {
+      return { response: badRequest(requestId, "原密码不正确") };
+    }
+    if (!PASSWORD.test(newPassword)) {
+      return { response: badRequest(requestId, "密码须为 8～32 位字母和数字") };
+    }
+    account!.password = newPassword;
+    return { response: ok(requestId, {}) };
+  }
+
+  if (pathname === "/app/account/devices" && method === "GET") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    return { response: ok(requestId, listDevices(account!.id, request)) };
+  }
+
+  const deviceMatch = pathname.match(/^\/app\/account\/devices\/(\d+)$/);
+  if (deviceMatch && method === "DELETE") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const id = Number(deviceMatch[1]);
+    const index = store.devices.findIndex((item) => item.id === id && item.accountId === account!.id);
+    if (index < 0) {
+      return { response: notFound(requestId, "设备不存在") };
+    }
+    const removed = store.devices[index];
+    store.devices.splice(index, 1);
+    if (removed.deviceId === deviceIdFrom(request)) {
+      for (const [token, session] of store.sessions) {
+        if (session.accountId === account!.id) {
+          store.sessions.delete(token);
+        }
+      }
+      return { response: ok(requestId, {}), sessionToken: null };
+    }
+    return { response: ok(requestId, {}) };
+  }
+
+  if (pathname === "/app/account/cancel" && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    if (account!.status === 3) {
+      return { response: businessError(requestId, 1014) };
+    }
+    const body = await jsonBody(request);
+    const code = str(body.code);
+    const sms = store.sms.get(smsKey(account!.phone, "cancel"));
+    if (!sms || sms.code !== code || sms.expireAt < Date.now()) {
+      return { response: businessError(requestId, 1011) };
+    }
+    store.sms.delete(smsKey(account!.phone, "cancel"));
+    account!.status = 3;
+    account!.cancelApplyAt = nowIso();
+    return {
+      response: ok(requestId, {
+        cancelApplyAt: account!.cancelApplyAt,
+        effectiveAt: daysFromNowIso(7),
+      }),
+    };
+  }
+
+  if (pathname === "/app/account/cancel/revoke" && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    if (account!.status !== 3) {
+      return { response: badRequest(requestId, "当前没有注销申请") };
+    }
+    account!.status = 1;
+    account!.cancelApplyAt = null;
+    return { response: ok(requestId, {}) };
   }
 
   if (pathname === "/app/member/hosts" && method === "GET") {
@@ -553,6 +703,9 @@ export async function handleMock(
       return {
         response: okAlready(requestId, data),
       };
+    }
+    if (account!.status === 3) {
+      return { response: businessError(requestId, 1014) };
     }
     if (!work || (work.status !== "PUBLISHED" && work.status !== "GRAY")) {
       return { response: businessError(requestId, 1008) };

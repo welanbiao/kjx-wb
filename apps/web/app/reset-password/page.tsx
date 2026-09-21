@@ -5,8 +5,9 @@ import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
-import { CaptchaField, captchaPayload } from "@/components/product/CaptchaField";
+import { CaptchaField } from "@/components/product/CaptchaField";
 import { Field, TextInput } from "@/components/product/Field";
+import type { FrozenCaptcha } from "@/lib/captcha/types";
 import { clientApi } from "@/lib/client-api";
 import { COPY } from "@/lib/copy";
 
@@ -15,22 +16,33 @@ export default function ResetPasswordPage() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [captcha, setCaptcha] = useState(false);
+  const [captcha, setCaptcha] = useState<FrozenCaptcha | null>(null);
+  const [captchaEpoch, setCaptchaEpoch] = useState(0);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   async function sendCode() {
+    if (!captcha) {
+      setError(new Error(COPY.captchaNeed));
+      return;
+    }
     setSending(true);
     setError(null);
     try {
-      await clientApi.sendCode({ phone, scene: "reset_pwd", ...captchaPayload(captcha) });
+      await clientApi.sendCode({
+        phone,
+        scene: "reset_pwd",
+        captchaId: captcha.captchaId,
+        captchaData: captcha.captchaData,
+      });
       setSuccess(COPY.codeSent);
     } catch (err) {
       setError(err);
     } finally {
       setSending(false);
+      setCaptchaEpoch((value) => value + 1);
     }
   }
 
@@ -59,11 +71,12 @@ export default function ResetPasswordPage() {
               id="reset-phone"
               required
               inputMode="numeric"
+              autoComplete="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
           </Field>
-          <CaptchaField checked={captcha} onChange={setCaptcha} />
+          <CaptchaField value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
           <Field id="reset-code" label={COPY.smsCode}>
             <TextInput
               id="reset-code"
@@ -73,7 +86,14 @@ export default function ResetPasswordPage() {
               onChange={(event) => setCode(event.target.value)}
             />
           </Field>
-          <Button type="button" variant="ghost" loading={sending} disabled={!captcha} onClick={() => void sendCode()}>
+          <Button
+            type="button"
+            variant="ghost"
+            loading={sending}
+            pendingLabel={COPY.sendingCode}
+            disabled={!captcha}
+            onClick={() => void sendCode()}
+          >
             {COPY.sendCode}
           </Button>
           <Field id="reset-password" label={COPY.newPassword} hint="8～32 位，须同时包含字母和数字">
@@ -83,6 +103,7 @@ export default function ResetPasswordPage() {
               required
               minLength={8}
               maxLength={32}
+              autoComplete="new-password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
             />

@@ -1,10 +1,49 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Figtree, Newsreader, Noto_Sans_SC, Noto_Serif_SC, Spline_Sans_Mono } from "next/font/google";
 import "./globals.css";
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
+
+const figtree = Figtree({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-figtree",
+  display: "swap",
+});
+
+const splineMono = Spline_Sans_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-spline-mono",
+  display: "swap",
+});
+
+const notoSans = Noto_Sans_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-noto-sans",
+  display: "swap",
+  preload: false,
+});
+
+const notoSerif = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-noto-serif",
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   title: "叩君芯",
-  description: "叩君芯会员产品平台 C 端骨架",
+  description: "叩君芯会员产品平台：注册、绑定、解锁自研作品。",
 };
 
 export default function RootLayout({
@@ -14,7 +53,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body
+        className={[
+          newsreader.variable,
+          figtree.variable,
+          splineMono.variable,
+          notoSans.variable,
+          notoSerif.variable,
+        ].join(" ")}
+      >
+        {children}
+      </body>
     </html>
   );
 }

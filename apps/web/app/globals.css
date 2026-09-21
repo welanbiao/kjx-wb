@@ -1,17 +1,556 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f8fafc;
-  color: #0f172a;
+  min-height: 100svh;
+  background: #061923;
+  color: #faedd1;
   font-family:
-    "Segoe UI",
+    var(--font-figtree),
+    var(--font-noto-sans),
     "PingFang SC",
     "Microsoft YaHei",
     sans-serif;
+}
+
+.kjx-app {
+  --kjx-bg: #061923;
+  --kjx-ink: #faedd1;
+  --kjx-muted: #b9ddeb;
+  --kjx-accent: #f4520d;
+  --kjx-sky: #1387c0;
+  --kjx-line: #2a9ed2;
+  --kjx-focus: #ff7a3d;
+  --kjx-cream: #faedd1;
+  --kjx-ticket-ink: #08212c;
+  --kjx-touch: 44px;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  color: var(--kjx-ink);
+  background-color: var(--kjx-bg);
+  background-image:
+    radial-gradient(1000px 480px at 60% -12%, rgb(19 135 192 / 0.72) 0%, transparent 62%),
+    repeating-linear-gradient(90deg, transparent 0 15px, rgb(42 158 210 / 0.1) 15px 16px);
+}
+
+.kjx-app.kjx-task {
+  background-image: radial-gradient(900px 420px at 50% -20%, rgb(19 135 192 / 0.35) 0%, transparent 70%);
+}
+
+.kjx-app *,
+.kjx-app *::before,
+.kjx-app *::after {
+  box-sizing: border-box;
+}
+
+.kjx-app :focus {
+  outline: none;
+}
+
+.kjx-app :focus-visible {
+  outline: 2px solid var(--kjx-focus);
+  outline-offset: 3px;
+}
+
+.kjx-app a,
+.kjx-app button,
+.kjx-app input,
+.kjx-app select,
+.kjx-app textarea,
+.kjx-app summary,
+.kjx-check {
+  min-height: var(--kjx-touch);
+}
+
+.kjx-app button,
+.kjx-btn {
+  white-space: nowrap;
+}
+
+.kjx-skip {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 20;
+  transform: translateY(-200%);
+  padding: 0.5rem 0.9rem;
+  background: var(--kjx-cream);
+  color: var(--kjx-ticket-ink);
+  text-decoration: none;
+  min-height: var(--kjx-touch);
+  display: inline-flex;
+  align-items: center;
+}
+
+.kjx-skip:focus,
+.kjx-skip:focus-visible {
+  transform: none;
+}
+
+.kjx-wrap {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.kjx-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--kjx-line);
+}
+
+.kjx-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: inherit;
+  min-height: var(--kjx-touch);
+}
+
+.kjx-brand-mark {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 0.55rem 0.15rem 0.55rem 0.15rem;
+  border: 1px solid var(--kjx-accent);
+  background: var(--kjx-cream);
+}
+
+.kjx-brand strong {
+  display: block;
+  font-family: var(--font-newsreader), var(--font-noto-serif), "Noto Serif SC", serif;
+  font-size: 1.15rem;
+}
+
+.kjx-nav,
+.kjx-header-actions,
+.kjx-actions,
+.kjx-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.kjx-nav a,
+.kjx-header-actions a,
+.kjx-header-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.9rem;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font: inherit;
+  min-height: var(--kjx-touch);
+}
+
+.kjx-nav a[aria-current="page"] {
+  border-color: var(--kjx-accent);
+  color: var(--kjx-cream);
+}
+
+.kjx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 1rem;
+  min-height: var(--kjx-touch);
+  border: 1px solid var(--kjx-accent);
+  background: var(--kjx-accent);
+  color: var(--kjx-cream);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.kjx-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.kjx-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.kjx-btn:disabled,
+.kjx-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.kjx-btn[data-success="true"] {
+  background: #1387c0;
+  border-color: #1387c0;
+}
+
+.kjx-btn-ghost {
+  background: transparent;
+  color: inherit;
+  border-color: currentColor;
+}
+
+.kjx-curtain {
+  height: 1.1rem;
+  background: repeating-linear-gradient(90deg, #1387c0 0 20px, #2a9ed2 20px 36px, #f4520d 36px 40px);
+  box-shadow: 0 8px 22px rgb(244 82 13 / 0.28);
+}
+
+.kjx-hero,
+.kjx-section {
+  padding-block: 3rem;
+}
+
+.kjx-kicker {
+  margin: 0 0 0.75rem;
+  color: var(--kjx-accent);
+  font-family: var(--font-spline-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+}
+
+.kjx-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-newsreader), var(--font-noto-serif), "Noto Serif SC", serif;
+  font-size: clamp(2.1rem, 6.4vw, 4rem);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.kjx-task .kjx-title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-style: normal;
+}
+
+.kjx-lead {
+  margin: 0 0 1.5rem;
+  max-width: 42rem;
+  line-height: 1.7;
+}
+
+.kjx-actions .kjx-btn {
+  flex: 1 1 12rem;
+}
+
+.kjx-hero-layout,
+.kjx-grid,
+.kjx-stats,
+.kjx-work-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.kjx-card,
+.kjx-ticket,
+.kjx-stat,
+.kjx-banner,
+.kjx-dialog {
+  border: 1px solid var(--kjx-line);
+  padding: 1rem;
+}
+
+.kjx-card {
+  background: rgb(19 135 192 / 0.16);
+  border-color: var(--kjx-accent);
+  border-radius: 2px 18px 2px 18px;
+}
+
+.kjx-task .kjx-card {
+  border-radius: 8px;
+  background: rgb(8 33 44 / 0.55);
+  border-color: var(--kjx-line);
+}
+
+.kjx-ticket {
+  background: var(--kjx-cream);
+  color: var(--kjx-ticket-ink);
+  border: 0;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1.25rem 2rem;
+  box-shadow:
+    0 12px 30px rgb(0 0 0 / 0.28),
+    0 0 0 3px #f4520d;
+}
+
+.kjx-ticket .kjx-lead,
+.kjx-ticket .kjx-hint {
+  color: #365565;
+}
+
+.kjx-ticket .kjx-btn {
+  background: #08212c;
+  color: #faedd1;
+  border-color: #08212c;
+}
+
+.kjx-ticket .kjx-btn-ghost {
+  background: transparent;
+  color: #08212c;
+  border-color: #08212c;
+}
+
+.kjx-brand-art {
+  width: clamp(8.25rem, 18vw, 10.5rem);
+  margin: 0 0 1.25rem;
+  padding: 0.4rem;
+  overflow: hidden;
+  color: #08212c;
+  background: #faedd1;
+  border: 2px solid var(--kjx-accent);
+  border-radius: 1.4rem 0.35rem 1.4rem 0.35rem;
+  box-shadow: 0.55rem 0.55rem 0 #1387c0;
+}
+
+.kjx-task .kjx-brand-art {
+  width: 4.5rem;
+  margin: 0 0 1rem;
+  transform: none;
+  box-shadow: none;
+  border-width: 1px;
+}
+
+.kjx-brand-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 1rem 0.2rem 0 0.2rem;
+}
+
+.kjx-brand-art figcaption {
+  padding: 0.4rem 0.25rem 0.15rem;
+  font-family: var(--font-spline-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.kjx-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.kjx-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0 0.5rem;
+  border: 1px solid currentColor;
+  font-size: 0.75rem;
+}
+
+.kjx-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.kjx-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.kjx-field label {
+  font-size: 0.875rem;
+}
+
+.kjx-field input,
+.kjx-field select,
+.kjx-field textarea {
+  width: 100%;
+  min-height: var(--kjx-touch);
+  padding: 0 0.7rem;
+  border: 1px solid var(--kjx-line);
+  background: var(--kjx-cream);
+  color: var(--kjx-ticket-ink);
+  font: inherit;
+  border-radius: 8px;
+}
+
+.kjx-field textarea {
+  min-height: 6rem;
+  padding: 0.7rem;
+}
+
+.kjx-field-error {
+  margin: 0;
+  color: #ffb4a2;
+  font-size: 0.8rem;
+}
+
+.kjx-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--kjx-muted);
+  line-height: 1.5;
+}
+
+.kjx-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--kjx-ink);
+}
+
+.kjx-check input {
+  width: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.kjx-banner {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.kjx-banner[data-tone="error"] {
+  border-color: #f4520d;
+  background: rgb(244 82 13 / 0.12);
+}
+
+.kjx-banner[data-tone="success"] {
+  border-color: #1387c0;
+  background: rgb(19 135 192 / 0.16);
+}
+
+.kjx-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.kjx-stat {
+  background: var(--kjx-cream);
+  color: var(--kjx-ticket-ink);
+  border: 0;
+  border-radius: 10px;
+}
+
+.kjx-stat dt {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+}
+
+.kjx-stat dd {
+  margin: 0;
+  font-size: 1.4rem;
+  font-family: var(--font-spline-mono), ui-monospace, monospace;
+}
+
+.kjx-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 30;
+}
+
+.kjx-dialog {
+  width: min(28rem, 100%);
+  background: var(--kjx-bg);
+  color: var(--kjx-ink);
+  border-radius: 8px;
+}
+
+.kjx-dialog h2 {
+  margin: 0 0 0.75rem;
+}
+
+.kjx-dialog p {
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.kjx-dialog-actions .kjx-btn {
+  flex: 1 1 8rem;
+}
+
+.kjx-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.kjx-tabs button {
+  flex: 1;
+  border: 1px solid var(--kjx-line);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 999px;
+}
+
+.kjx-tabs button[aria-selected="true"] {
+  background: var(--kjx-cream);
+  color: var(--kjx-ticket-ink);
+  border-color: var(--kjx-cream);
+}
+
+.kjx-auth {
+  width: min(28rem, calc(100% - 2rem));
+  margin: 2.5rem auto 3rem;
+}
+
+.kjx-footer {
+  padding: 1.5rem 0 2.5rem;
+  border-top: 1px solid var(--kjx-line);
+  font-size: 0.875rem;
+  color: var(--kjx-muted);
+}
+
+@media (min-width: 768px) {
+  .kjx-hero-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: stretch;
+  }
+
+  .kjx-work-grid,
+  .kjx-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1440px) {
+  .kjx-wrap {
+    width: min(1280px, calc(100% - 4rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .kjx-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .kjx-actions .kjx-btn,
+  .kjx-dialog-actions .kjx-btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kjx-app *,
+  .kjx-app *::before,
+  .kjx-app *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

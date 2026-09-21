@@ -28,7 +28,7 @@ export default function HealthPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-16">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 bg-slate-50 px-6 py-16 text-slate-900">
       <Link href="/" className="text-sm text-slate-500">
         ← 返回首页
       </Link>

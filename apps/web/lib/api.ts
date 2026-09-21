@@ -1,18 +1,8 @@
-/**
- * C 端 API 客户端占位。
- *
- * 契约见 docs/13 §4：
- * - 响应信封 { code, data, msg, requestId }
- * - 路径只使用 /app/**，旧 /api/** 已废止
- * - 认证依赖 httpOnly Cookie（credentials: include），不在前端保存 token
- */
-
-export type ApiEnvelope<T> = {
-  code: number;
-  data: T;
-  msg: string;
-  requestId: string;
-};
+import { readCsrfFromDocument } from "@/lib/csrf";
+import { readDeviceId } from "@/lib/device";
+import { ALREADY_UNLOCKED, ApiError } from "@/lib/errors";
+import { CSRF_HEADER } from "@/lib/session";
+import type { ApiEnvelope } from "@/lib/types";
 
 export const APP_API_PREFIX = "/app";
 
@@ -20,19 +10,36 @@ export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
 }
 
+export function getBffBaseUrl(): string {
+  return "";
+}
+
 export function buildHeaders(
   init?: HeadersInit,
-  options?: { idempotencyKey?: string },
+  options?: { idempotencyKey?: string; csrf?: string },
 ): Headers {
   const headers = new Headers(init);
   headers.set("Accept", "application/json");
   headers.set("X-Client-Version", process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0");
-  headers.set("X-Device-Id", "web-skeleton");
+  headers.set("X-Device-Id", readDeviceId());
   headers.set("X-Request-Id", crypto.randomUUID());
   if (options?.idempotencyKey) {
     headers.set("X-Idempotency-Key", options.idempotencyKey);
   }
+  const csrf = options?.csrf ?? readCsrfFromDocument();
+  if (csrf) {
+    headers.set(CSRF_HEADER, csrf);
+  }
   return headers;
+}
+
+async function ensureCsrf(): Promise<string> {
+  const existing = readCsrfFromDocument();
+  if (existing) {
+    return existing;
+  }
+  await fetch(`${getBffBaseUrl()}/app/auth/csrf`, { credentials: "include", cache: "no-store" });
+  return readCsrfFromDocument();
 }
 
 export async function apiFetch<T>(
@@ -40,14 +47,34 @@ export async function apiFetch<T>(
   init?: RequestInit & { idempotencyKey?: string },
 ): Promise<ApiEnvelope<T>> {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const url = `${getApiBaseUrl()}${normalized}`;
+  const csrf = await ensureCsrf();
   const { idempotencyKey, headers, ...rest } = init ?? {};
-  const response = await fetch(url, {
+  const response = await fetch(`${getBffBaseUrl()}${normalized}`, {
     ...rest,
     credentials: "include",
-    headers: buildHeaders(headers, { idempotencyKey }),
+    headers: buildHeaders(headers, { idempotencyKey, csrf }),
   });
-  return (await response.json()) as ApiEnvelope<T>;
+  let payload: ApiEnvelope<T> | null = null;
+  try {
+    payload = (await response.json()) as ApiEnvelope<T>;
+  } catch {
+    throw new ApiError({
+      code: response.status || 500,
+      msg: "响应不是 JSON",
+      requestId: response.headers.get("X-Request-Id") ?? "unknown",
+      httpStatus: response.status,
+    });
+  }
+  if (payload.code !== 0 && payload.code !== ALREADY_UNLOCKED) {
+    throw new ApiError({
+      code: payload.code,
+      msg: payload.msg,
+      requestId: payload.requestId,
+      httpStatus: response.status,
+      data: payload.data,
+    });
+  }
+  return payload;
 }
 
 export async function pingBackendHealth(): Promise<{

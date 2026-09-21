@@ -1,1 +1,2 @@
 com.koujunxin.work.config.WorkAutoConfiguration
+com.koujunxin.work.packagecontent.WorkPackageAutoConfiguration

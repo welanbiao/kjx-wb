@@ -1,0 +1,25 @@
+-- WP-31 / V420：作品包上传、机审报告、发布/回滚历史（不改 V400–V402 冻结列）。
+CREATE TABLE `kjx_work_package` (
+  `id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `work_id`          BIGINT UNSIGNED NOT NULL COMMENT '作品ID',
+  `version`          VARCHAR(32)     NOT NULL COMMENT '作品版本号',
+  `status`           VARCHAR(24)     NOT NULL DEFAULT 'UPLOADED' COMMENT 'UPLOADED/VALIDATED/REJECTED/PREVIEWED/PUBLISHED/ROLLED_BACK',
+  `form`             VARCHAR(8)      NOT NULL DEFAULT 'A' COMMENT '接入形态 A/B/C',
+  `package_hash`     CHAR(64)        DEFAULT NULL COMMENT 'zip SHA-256',
+  `package_size`     BIGINT UNSIGNED DEFAULT NULL COMMENT 'zip 字节数',
+  `storage_key`      VARCHAR(512)    DEFAULT NULL COMMENT '原包对象键（SERVER 域）',
+  `cdn_prefix`       VARCHAR(512)    DEFAULT NULL COMMENT 'CDN 产物前缀',
+  `server_prefix`    VARCHAR(512)    DEFAULT NULL COMMENT 'server/ 产物前缀，禁止走 CDN',
+  `content_version`  VARCHAR(32)     DEFAULT NULL COMMENT '包内声明的内容版本',
+  `gray_ratio`       INT             NOT NULL DEFAULT 0 COMMENT '本版本灰度 0-100',
+  `previous_version` VARCHAR(32)     DEFAULT NULL COMMENT '发布前 current_version，回滚用',
+  `validate_report`  JSON            DEFAULT NULL COMMENT '15 项机审报告',
+  `preview_token`    VARCHAR(64)     DEFAULT NULL COMMENT '预览票据',
+  `creator`          VARCHAR(64)     DEFAULT '' COMMENT '创建者',
+  `create_time`      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updater`          VARCHAR(64)     DEFAULT '' COMMENT '更新者',
+  `update_time`      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_kjx_work_package` (`work_id`, `version`),
+  KEY `idx_kjx_work_package_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='作品包';

@@ -20,6 +20,9 @@ spring:
       charset: UTF-8
       enabled: true
       force: true
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   messages:
     basename: i18n/messages
   datasource:

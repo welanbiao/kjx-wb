@@ -19,6 +19,7 @@ import com.koujunxin.member.api.port.DeptAccessPort;
 import com.koujunxin.member.api.port.HostDeptPort;
 import com.koujunxin.member.api.port.MemberAuditPort;
 import com.koujunxin.member.config.MemberAutoConfiguration;
+import com.koujunxin.runtime.api.RuntimeAccountPort;
 import com.koujunxin.work.config.WorkAutoConfiguration;
 import com.koujunxin.work.port.WorkAuditPort;
 
@@ -73,5 +74,11 @@ public class DomainIntegrationAutoConfiguration {
     @ConditionalOnMissingBean(WorkAuditPort.class)
     WorkAuditPort workAuditPort(AuditLogWritePort audit, RequestContextPort contexts) {
         return new WorkAuditAdapter(audit, contexts);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(RuntimeAccountPort.class)
+    RuntimeAccountPort runtimeAccountPort() {
+        return new AppRuntimeAccountAdapter();
     }
 }

@@ -1,55 +1,88 @@
 <template>
   <div class="login">
     <el-card class="card">
-      <h1>管理端登录占位</h1>
-      <p class="hint">
-        不会写入 token。后续由 RuoYi-Vue-Plus v5.2.3 接管认证，而不是当前伪造其源码。
+      <p class="eyebrow">
+        叩君芯 · 分幕通行证
+      </p>
+      <h1>管理台登录</h1>
+      <p class="kjx-lead">
+        后台令牌 loginType=admin。不会把密码、token 或验证码写进日志。
       </p>
       <el-form
-        :model="form"
         label-position="top"
         @submit.prevent="onSubmit"
       >
-        <el-form-item label="账号">
+        <el-form-item
+          label="账号"
+          required
+        >
           <el-input
             v-model="form.username"
             autocomplete="username"
+            aria-label="账号"
           />
         </el-form-item>
-        <el-form-item label="密码">
+        <el-form-item
+          label="密码"
+          required
+        >
           <el-input
             v-model="form.password"
             type="password"
             show-password
             autocomplete="current-password"
+            aria-label="密码"
           />
         </el-form-item>
         <el-button
           type="primary"
           native-type="submit"
+          :loading="busy"
           style="width: 100%"
         >
-          进入骨架
+          登录
         </el-button>
       </el-form>
+      <el-alert
+        v-if="mock"
+        class="mock"
+        type="info"
+        :closable="false"
+        title="当前为显式 Mock：host-a / host-b / operator / superadmin。密码均为 mock- 前缀，不是真实凭据。"
+      />
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
-import { useRouter } from "vue-router";
+import { reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { loginAdmin } from "@/api/auth";
+import { isMockApi } from "@/lib/env";
+import { formatRequestFailure } from "@/lib/errors";
 
 const router = useRouter();
+const route = useRoute();
+const mock = isMockApi();
+const busy = ref(false);
 const form = reactive({
-  username: "admin",
+  username: "",
   password: "",
 });
 
-function onSubmit() {
-  ElMessage.info("登录仅为骨架占位，未保存任何凭证。");
-  void router.push("/dashboard");
+async function onSubmit() {
+  busy.value = true;
+  try {
+    await loginAdmin(form.username.trim(), form.password);
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/dashboard";
+    await router.replace(redirect);
+  } catch (error) {
+    const failure = formatRequestFailure(error);
+    ElMessage.error(failure.requestId ? `${failure.title}（${failure.requestId}）` : failure.title);
+  } finally {
+    busy.value = false;
+  }
 }
 </script>
 
@@ -58,18 +91,26 @@ function onSubmit() {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: #f2f3f5;
+  padding: 24px;
+  background:
+    radial-gradient(900px 420px at 70% -10%, rgb(19 135 192 / 0.55) 0%, transparent 60%),
+    var(--kjx-bg);
 }
 .card {
-  width: 420px;
+  width: min(440px, 100%);
+}
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--kjx-accent);
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  text-transform: uppercase;
 }
 h1 {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: 24px;
 }
-.hint {
-  margin: 0 0 16px;
-  color: #909399;
-  line-height: 1.6;
+.mock {
+  margin-top: 16px;
 }
 </style>

@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3001,
+      proxy: {
+        "/admin-api": {
+          target: env.VITE_API_BASE_URL || "http://localhost:8080",
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

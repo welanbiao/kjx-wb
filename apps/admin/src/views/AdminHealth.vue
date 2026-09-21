@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <h1>健康检查</h1>
+  <div class="kjx-page">
+    <PageHeader title="健康检查" />
     <el-descriptions
       :column="1"
       border
@@ -16,6 +16,9 @@
       </el-descriptions-item>
       <el-descriptions-item label="Public base">
         {{ publicBase }}
+      </el-descriptions-item>
+      <el-descriptions-item label="模式">
+        {{ mode }}
       </el-descriptions-item>
     </el-descriptions>
     <el-button
@@ -45,12 +48,15 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import PageHeader from "@/components/PageHeader.vue";
 import { getApiBaseUrl, pingBackendHealth } from "@/lib/api";
+import { getApiMode } from "@/lib/env";
 
 const title = import.meta.env.VITE_APP_TITLE ?? "叩君芯管理端";
 const version = import.meta.env.VITE_APP_VERSION ?? "0.0.0";
 const publicBase = import.meta.env.BASE_URL;
 const apiBase = getApiBaseUrl();
+const mode = getApiMode();
 const loading = ref(false);
 const status = ref<number | null>(null);
 const body = ref("");
@@ -77,8 +83,8 @@ async function onPing() {
 .output {
   margin-top: 16px;
   padding: 12px;
-  background: #1f2d3d;
-  color: #e5eaf3;
+  background: var(--kjx-bg);
+  color: var(--kjx-cream);
   border-radius: 8px;
   overflow: auto;
   white-space: pre-wrap;

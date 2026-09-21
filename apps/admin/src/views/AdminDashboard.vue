@@ -1,26 +1,37 @@
 <template>
-  <div>
-    <h1>工作台</h1>
-    <el-alert
-      title="当前是 WP-00C 最小壳，业务页由 WP-21 在 RuoYi-Vue-Plus v5.2.3 上实现。"
-      type="info"
-      show-icon
-      :closable="false"
+  <div class="kjx-page">
+    <PageHeader
+      title="工作台"
+      lead="主播走自助路径，运营走跨部门路径。菜单隐藏不能替代后端校验。"
     />
     <el-descriptions
       :column="1"
       border
-      style="margin-top: 16px"
     >
-      <el-descriptions-item label="后续接入">
-        RuoYi-Vue-Plus v5.2.3 plus-ui
+      <el-descriptions-item label="当前账号">
+        {{ session?.username }}
+      </el-descriptions-item>
+      <el-descriptions-item label="角色">
+        {{ session?.roles.join(", ") }}
+      </el-descriptions-item>
+      <el-descriptions-item label="部门">
+        {{ session?.deptId ?? "—" }}
+      </el-descriptions-item>
+      <el-descriptions-item label="API 模式">
+        {{ mode }}
       </el-descriptions-item>
       <el-descriptions-item label="契约前缀">
-        /admin-api
-      </el-descriptions-item>
-      <el-descriptions-item label="当前行为">
-        无真实登录、无菜单权限、无 token 缓存
+        /admin-api/kjx
       </el-descriptions-item>
     </el-descriptions>
   </div>
 </template>
+
+<script setup lang="ts">
+import PageHeader from "@/components/PageHeader.vue";
+import { getApiMode } from "@/lib/env";
+import { sessionState } from "@/lib/session";
+
+const session = sessionState().session;
+const mode = getApiMode();
+</script>

@@ -11,8 +11,14 @@ export default function HomePage() {
       </p>
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/health"
+          href="/design-preview"
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+        >
+          视觉方向对比
+        </Link>
+        <Link
+          href="/health"
+          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
         >
           健康检查
         </Link>

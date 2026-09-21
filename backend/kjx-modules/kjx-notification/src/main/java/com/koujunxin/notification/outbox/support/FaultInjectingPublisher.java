@@ -2,8 +2,8 @@ package com.koujunxin.notification.outbox.support;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.koujunxin.notification.outbox.OutboxEnvelope;
 import com.koujunxin.notification.outbox.OutboxPublisher;
-import com.koujunxin.notification.outbox.OutboxRecord;
 
 /**
  * 故障注入 Publisher：先失败 N 次，再委托真实投递。
@@ -19,11 +19,11 @@ public class FaultInjectingPublisher implements OutboxPublisher {
     }
 
     @Override
-    public void publish(OutboxRecord record) throws Exception {
+    public void publish(OutboxEnvelope envelope) throws Exception {
         if (remainingFailures.getAndDecrement() > 0) {
-            throw new IllegalStateException("injected publish failure for event " + record.eventId());
+            throw new IllegalStateException("injected publish failure for event " + envelope.eventId());
         }
-        delegate.publish(record);
+        delegate.publish(envelope);
     }
 
     public int remainingFailures() {

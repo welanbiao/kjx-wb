@@ -128,6 +128,6 @@ abstract class MysqlOutboxSupport {
     }
 
     JdbcOutboxWorker worker(com.koujunxin.notification.outbox.OutboxPublisher publisher, OutboxProperties properties) {
-        return new JdbcOutboxWorker(repository(), publisher, tx(), properties);
+        return new JdbcOutboxWorker(repository(), publisher, tx(), properties, mapper());
     }
 }

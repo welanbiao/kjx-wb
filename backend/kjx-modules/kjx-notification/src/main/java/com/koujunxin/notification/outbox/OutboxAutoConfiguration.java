@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -21,7 +23,7 @@ import com.koujunxin.notification.outbox.jdbc.JdbcOutboxWriter;
 import com.koujunxin.notification.outbox.validation.OutboxPayloadValidator;
 import org.springframework.beans.factory.ObjectProvider;
 
-@AutoConfiguration
+@AutoConfiguration(after = {JdbcTemplateAutoConfiguration.class, JacksonAutoConfiguration.class})
 @ConditionalOnClass(JdbcTemplate.class)
 @ConditionalOnBean(JdbcTemplate.class)
 public class OutboxAutoConfiguration {
@@ -59,15 +61,16 @@ public class OutboxAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(OutboxPublisher.class)
+    @ConditionalOnBean({OutboxPublisher.class, ObjectMapper.class})
     @ConditionalOnMissingBean(OutboxWorker.class)
     OutboxWorker outboxWorker(
             OutboxRepository repository,
             OutboxPublisher publisher,
             DataSource dataSource,
             OutboxProperties properties,
+            ObjectMapper objectMapper,
             ObjectProvider<PlatformTransactionManager> txManagers) {
         PlatformTransactionManager txManager = txManagers.getIfAvailable(() -> new DataSourceTransactionManager(dataSource));
-        return new JdbcOutboxWorker(repository, publisher, new TransactionTemplate(txManager), properties);
+        return new JdbcOutboxWorker(repository, publisher, new TransactionTemplate(txManager), properties, objectMapper);
     }
 }

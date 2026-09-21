@@ -279,14 +279,19 @@ WP-00。
    - 同键同参返回；
    - 同键异参冲突；
    - 同事务完成结果。
-5. 实现 `OutboxWriter`。
+5. 实现 `OutboxWriter`：JSON 列写入完整 envelope（含嵌套 payload 与 occurredAt/traceId/requestId/idempotencyKey），Publisher 明确收到信封。
 6. 实现轮询领取、超时回收、重试、DEAD。
-7. 定义消费者幂等接口。
+7. 定义消费者幂等接口，并用 V102 回执表实现：`tryBegin` 原子领取新行或回收过期 PROCESSING；DONE 永不重复；abandon 可释放 PROCESSING。
 8. 提供测试消费者与故障注入。
+9. 外部 SMS 仍按至少一次投递，向支持幂等的提供方传 `eventId`。
 
 ### DDL/API
 
-严格使用 `13` 中 `kjx_idempotency_guard`、`kjx_outbox_event`。
+严格使用 `13` 中 `kjx_idempotency_guard`、`kjx_outbox_event`（**冻结字段，禁止增删列**）。
+
+消费回执支持表 `kjx_outbox_consume_receipt`（V102，非冻结）按 `docs/adr/ADR-001-outbox-consume-receipt.md` 与 `13` §3.5：主键 `(event_id, channel)`，含 `lease_until` / `update_time` / `attempt_count`。
+
+信封对齐 `contracts/events/outbox-envelope.schema.json`。
 
 ### 验收
 
@@ -294,14 +299,15 @@ WP-00。
 - 同 key/scene/ref 不同请求返回 409。
 - 事务回滚无 guard 成功占位、无 Outbox。
 - 提交后宕机，重启仍投递。
-- 重复投递只产生一个消费结果。
+- 写入 JSON 为完整 envelope；重复投递对 DONE 的本地消费只生效一次。
+- PROCESSING 回执崩溃且租约到期后可被 tryBegin 回收；DONE 不可回收。
 - runtime/tool 编译依赖无环。
 
 ### 注意事项
 
-- 不承诺“恰好一次”。
+- 不承诺“恰好一次”。外部 SMS 是至少一次，即使本地回执已 DONE，提供方仍可能见过同一 `eventId`。
 - ApplicationEvent 不能替代 Outbox。
-- Outbox payload 必须脱敏并带 schemaVersion。
+- Outbox JSON 必须是脱敏后的完整信封，嵌套 payload 带 schemaVersion；事件特定校验针对嵌套 payload。
 
 ### 交付
 

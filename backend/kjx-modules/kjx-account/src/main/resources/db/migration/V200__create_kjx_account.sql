@@ -1,0 +1,33 @@
+-- WP-10 / V200：平台账号。字段对齐 docs/09 §2.2 / docs/13 §3.6。
+-- 禁止存明文手机号、密码。phone 为 AES-256-GCM 密文，phone_hash 为 HMAC-SHA256。
+CREATE TABLE `kjx_account` (
+  `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '账号ID',
+  `phone`           VARCHAR(255)    DEFAULT NULL COMMENT '手机号（AES 加密存储）',
+  `phone_hash`      CHAR(64)        DEFAULT NULL COMMENT '手机号 HMAC-SHA256（用于唯一索引与检索）',
+  `email`           VARCHAR(128)    DEFAULT NULL COMMENT '邮箱',
+  `password_hash`   VARCHAR(128)    NOT NULL COMMENT '密码哈希（bcrypt/Argon2）',
+  `nickname`        VARCHAR(64)     DEFAULT NULL COMMENT '昵称',
+  `avatar`          VARCHAR(512)    DEFAULT NULL COMMENT '头像 URL',
+  `status`          TINYINT         NOT NULL DEFAULT 1 COMMENT '1正常 2锁定 3注销中 4已注销',
+  `bind_status`     TINYINT         NOT NULL DEFAULT 0 COMMENT '0未绑定 1审核中 2已绑定 3已驳回 4解绑中',
+  `bind_fail_count` INT UNSIGNED    NOT NULL DEFAULT 0 COMMENT '绑定失败次数',
+  `bind_locked_until` DATETIME(3)   DEFAULT NULL COMMENT '绑定功能锁定至',
+  `register_ip`     VARBINARY(16)   DEFAULT NULL COMMENT '注册 IP',
+  `register_device` VARCHAR(64)     DEFAULT NULL COMMENT '注册设备指纹',
+  `last_login_at`   DATETIME(3)     DEFAULT NULL COMMENT '最后登录时间',
+  `last_login_ip`   VARBINARY(16)   DEFAULT NULL COMMENT '最后登录 IP',
+  `cancel_apply_at` DATETIME(3)     DEFAULT NULL COMMENT '注销申请时间（7 天冷静期起点）',
+  `remark`          VARCHAR(255)    DEFAULT NULL COMMENT '备注',
+  `creator`         VARCHAR(64)     DEFAULT '' COMMENT '创建者',
+  `create_time`     DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updater`         VARCHAR(64)     DEFAULT '' COMMENT '更新者',
+  `update_time`     DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted`         BIT(1)          NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  `tenant_id`       BIGINT          NOT NULL DEFAULT 0 COMMENT '租户编号（固定 0）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_kjx_account_phone_hash` (`phone_hash`),
+  UNIQUE KEY `uk_kjx_account_email` (`email`),
+  KEY `idx_kjx_account_bind_status` (`bind_status`),
+  KEY `idx_kjx_account_status` (`status`),
+  KEY `idx_kjx_account_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='平台账号';

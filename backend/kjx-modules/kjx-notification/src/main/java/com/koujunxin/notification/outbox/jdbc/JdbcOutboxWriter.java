@@ -1,6 +1,5 @@
 package com.koujunxin.notification.outbox.jdbc;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,9 +35,9 @@ public class JdbcOutboxWriter implements OutboxWriter {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("OutboxWriter.append requires an active transaction");
         }
-        Map<String, Object> payload = new LinkedHashMap<>(validator.validate(command));
+        Map<String, Object> envelope = validator.validate(command);
         try {
-            String json = objectMapper.writeValueAsString(payload);
+            String json = objectMapper.writeValueAsString(envelope);
             jdbcTemplate.update(INSERT_SQL,
                     command.eventId(),
                     command.aggregateType(),
@@ -47,7 +46,7 @@ public class JdbcOutboxWriter implements OutboxWriter {
                     json);
             return command.eventId();
         } catch (JsonProcessingException ex) {
-            throw new OutboxValidationException("payload is not valid json");
+            throw new OutboxValidationException("envelope is not valid json");
         }
     }
 }

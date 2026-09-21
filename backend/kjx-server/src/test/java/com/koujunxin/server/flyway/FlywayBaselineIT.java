@@ -1,5 +1,7 @@
 package com.koujunxin.server.flyway;
 
+import java.util.List;
+
 import com.koujunxin.server.support.InfraContainers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,17 @@ class FlywayBaselineIT {
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM sys_config WHERE config_key = 'sys.user.initPassword'",
                 Integer.class));
+    }
+
+    @Test
+    void moduleJarMigrationsAreDiscoveredFromStandardClasspathLocation() {
+        List<String> versions = jdbcTemplate.queryForList(
+                "SELECT version FROM flyway_schema_history WHERE success = 1",
+                String.class);
+        assertTrue(versions.containsAll(List.of(
+                "100", "101", "102",
+                "200", "201", "202",
+                "400", "401", "402")));
     }
 
     @Test

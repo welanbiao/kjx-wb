@@ -231,6 +231,33 @@ CREATE TABLE `kjx_outbox_event` (
 - 指数退避并加入抖动。
 - `last_error` 只存脱敏摘要。
 - 消费成功后再标记 `PUBLISHED`。
+- **表字段冻结**：不得为 `kjx_outbox_event` 增删列（含 `locked_at`、`trace_id` 等）。
+
+JSON 列语义（不改表结构）：
+
+- `payload` JSON 保存完整 envelope，对齐 `contracts/events/outbox-envelope.schema.json`。
+- 业务体嵌套在信封的 `payload` 字段中；`occurredAt` / `traceId` / `requestId` / `idempotencyKey` 等元数据必须留在信封内，不得只写裸业务 JSON。
+- Publisher 收到的是完整信封，不是裸 payload。
+
+消费回执支持表（非冻结，见 `docs/adr/ADR-001-outbox-consume-receipt.md`）：
+
+```sql
+CREATE TABLE `kjx_outbox_consume_receipt` (
+  `event_id`       CHAR(36)       NOT NULL,
+  `channel`        VARCHAR(32)    NOT NULL,
+  `status`         VARCHAR(16)    NOT NULL DEFAULT 'PROCESSING',
+  `attempt_count`  INT UNSIGNED   NOT NULL DEFAULT 0,
+  `lease_until`    DATETIME(3)    DEFAULT NULL,
+  `create_time`    DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `update_time`    DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+                                    ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`event_id`, `channel`),
+  KEY `idx_receipt_lease` (`status`, `lease_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+- 主键 `(event_id, channel)`。`tryBegin` 领取新行或回收过期 `PROCESSING`；`DONE` 永不重复；`abandon` 只释放 `PROCESSING`。
+- Outbox 与外部 SMS 都是至少一次。向支持幂等的短信提供方传 `eventId`，不得声称 exactly-once。
 
 ### 3.6 账号设备
 
@@ -359,6 +386,12 @@ M1/M2 的完整 DDL 见 `09`，但必须包含上述覆盖项。后续模块表�
 - `GET /app/works/{workCode}`
 - `POST /app/works/{workCode}/unlock`
 - `GET /app/entitlements`
+
+可见性：
+
+- `PUBLISHED` 对所有账号可见；`GRAY` 使用 `unsigned CRC32(accountId + ":" + workId) % 100 < gray_ratio`，同一账号与作品跨进程结果稳定。
+- 列表、详情和新解锁必须复用唯一 `WorkVisibilityService`，不得各写一套灰度逻辑。
+- 已有 entitlement 时先短路，作品下架后仍可进入；下架作品不得出现在公开列表。
 
 解锁：
 

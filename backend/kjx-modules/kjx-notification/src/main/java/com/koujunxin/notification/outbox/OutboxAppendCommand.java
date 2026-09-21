@@ -5,7 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Outbox 追加命令。payload 必须含 schemaVersion，写入前做白名单与敏感字段校验。
+ * Outbox 追加命令。payload 为嵌套业务体，必须含 schemaVersion。
+ * 写入 JSON 列的是完整 envelope（occurredAt/traceId/requestId/idempotencyKey 一并保留）。
  */
 public record OutboxAppendCommand(
         String eventId,

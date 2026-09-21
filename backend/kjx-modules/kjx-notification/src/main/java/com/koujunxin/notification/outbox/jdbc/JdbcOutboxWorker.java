@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.koujunxin.notification.outbox.OutboxEnvelope;
 import com.koujunxin.notification.outbox.OutboxProperties;
 import com.koujunxin.notification.outbox.OutboxPublisher;
 import com.koujunxin.notification.outbox.OutboxRecord;
@@ -14,7 +16,7 @@ import com.koujunxin.notification.outbox.support.ErrorDigest;
 import com.koujunxin.notification.outbox.support.RetryBackoff;
 
 /**
- * 至少一次投递：先 claim（PROCESSING + next_retry_at 作为租约到期），事务外 publish，成功后再标 PUBLISHED。
+ * 至少一次投递：先 claim（PROCESSING + next_retry_at 作为租约到期），事务外 publish 完整信封，成功后再标 PUBLISHED。
  */
 public class JdbcOutboxWorker implements OutboxWorker {
 
@@ -22,16 +24,19 @@ public class JdbcOutboxWorker implements OutboxWorker {
     private final OutboxPublisher publisher;
     private final TransactionTemplate transactionTemplate;
     private final OutboxProperties properties;
+    private final ObjectMapper objectMapper;
 
     public JdbcOutboxWorker(
             OutboxRepository repository,
             OutboxPublisher publisher,
             TransactionTemplate transactionTemplate,
-            OutboxProperties properties) {
+            OutboxProperties properties,
+            ObjectMapper objectMapper) {
         this.repository = repository;
         this.publisher = publisher;
         this.transactionTemplate = transactionTemplate;
         this.properties = properties;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -44,7 +49,8 @@ public class JdbcOutboxWorker implements OutboxWorker {
         int published = 0;
         for (OutboxRecord record : batch) {
             try {
-                publisher.publish(record);
+                OutboxEnvelope envelope = OutboxEnvelope.fromJson(record.envelopeJson(), objectMapper);
+                publisher.publish(envelope);
                 transactionTemplate.executeWithoutResult(status -> repository.markPublished(record.eventId()));
                 published++;
             } catch (Exception ex) {

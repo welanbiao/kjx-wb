@@ -54,6 +54,7 @@
     <ip2region.version>2.7.0</ip2region.version>
     <mapstruct-plus.version>1.4.5</mapstruct-plus.version>
     <easyexcel.version>4.0.3</easyexcel.version>
+    <bouncycastle.version>1.80</bouncycastle.version>
   </properties>
 
   <dependencyManagement>
@@ -213,6 +214,11 @@
         <groupId>com.alibaba</groupId>
         <artifactId>easyexcel</artifactId>
         <version>${easyexcel.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

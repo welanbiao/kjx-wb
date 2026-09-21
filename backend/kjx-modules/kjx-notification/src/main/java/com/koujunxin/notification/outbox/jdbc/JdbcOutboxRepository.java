@@ -121,7 +121,7 @@ public class JdbcOutboxRepository implements OutboxRepository {
                     row.aggregateType(),
                     row.aggregateId(),
                     row.eventType(),
-                    row.payloadJson(),
+                    row.envelopeJson(),
                     "PROCESSING",
                     row.retryCount(),
                     Instant.now().plus(lease),

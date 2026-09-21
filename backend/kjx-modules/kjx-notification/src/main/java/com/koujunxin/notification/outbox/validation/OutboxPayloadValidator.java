@@ -9,14 +9,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.koujunxin.notification.outbox.OutboxAppendCommand;
+import com.koujunxin.notification.outbox.OutboxEnvelope;
 import com.koujunxin.notification.outbox.OutboxValidationException;
 
 /**
- * 按 contracts/events 白名单与 payload 强类型规则做边界校验。
+ * 按 contracts/events 白名单与 envelope/payload 规则做边界校验。
+ * 返回完整信封（含嵌套 payload）；事件特定规则只校验嵌套 payload。
  */
 public class OutboxPayloadValidator {
 
@@ -37,27 +41,18 @@ public class OutboxPayloadValidator {
     private static final Set<String> INBOX_TYPES = Set.of("SYSTEM", "SECURITY", "BENEFIT", "ACTIVITY");
     private static final Set<String> ENTITLEMENT_ACTIONS = Set.of("GRANTED", "REVOKED");
     private static final Set<String> ENTITLEMENT_SOURCES = Set.of("user", "official_add", "official_remove", "fix");
-    private static final java.util.regex.Pattern PHONE = java.util.regex.Pattern.compile("(?<!\\d)1[3-9]\\d{9}(?!\\d)");
+    private static final Pattern PHONE = Pattern.compile("(?<!\\d)1[3-9]\\d{9}(?!\\d)");
+    private static final Pattern UUID_PATTERN = Pattern.compile(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private final Map<String, Set<String>> whitelist;
-    private final ObjectMapper objectMapper;
 
     public OutboxPayloadValidator(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
         this.whitelist = loadWhitelist(objectMapper);
     }
 
     public Map<String, Object> validate(OutboxAppendCommand command) {
-        if (!OutboxAppendCommand.CURRENT_SCHEMA.equals(command.schemaVersion())) {
-            throw new OutboxValidationException("envelope schemaVersion must be 1.0");
-        }
-        if (!AGGREGATES.contains(command.aggregateType())) {
-            throw new OutboxValidationException("aggregateType is not in envelope enum");
-        }
-        Set<String> allowed = whitelist.get(command.aggregateType());
-        if (allowed == null || !allowed.contains(command.eventType())) {
-            throw new OutboxValidationException("eventType is not in whitelist: " + command.eventType());
-        }
+        validateEnvelope(command);
         Map<String, Object> payload = command.payload();
         Object schemaVersion = payload.get("schemaVersion");
         if (!(schemaVersion instanceof String version) || !OutboxAppendCommand.CURRENT_SCHEMA.equals(version)) {
@@ -74,7 +69,40 @@ public class OutboxPayloadValidator {
                 // 白名单内其他事件：至少 schemaVersion + 无敏感字段
             }
         }
-        return payload;
+        return new OutboxEnvelope(
+                command.eventId(),
+                command.aggregateType(),
+                command.aggregateId(),
+                command.eventType(),
+                command.schemaVersion(),
+                command.occurredAt(),
+                blankToNull(command.traceId()),
+                blankToNull(command.requestId()),
+                blankToNull(command.idempotencyKey()),
+                payload).toMap();
+    }
+
+    private void validateEnvelope(OutboxAppendCommand command) {
+        if (!OutboxAppendCommand.CURRENT_SCHEMA.equals(command.schemaVersion())) {
+            throw new OutboxValidationException("envelope schemaVersion must be 1.0");
+        }
+        requireUuid(command.eventId(), "eventId");
+        requireLength(command.aggregateType(), "aggregateType", 32);
+        requireLength(command.aggregateId(), "aggregateId", 64);
+        requireLength(command.eventType(), "eventType", 64);
+        if (command.occurredAt() == null) {
+            throw new OutboxValidationException("envelope.occurredAt is required");
+        }
+        requireOptionalLength(command.traceId(), "traceId", 64);
+        requireOptionalLength(command.requestId(), "requestId", 64);
+        requireOptionalLength(command.idempotencyKey(), "idempotencyKey", 64);
+        if (!AGGREGATES.contains(command.aggregateType())) {
+            throw new OutboxValidationException("aggregateType is not in envelope enum");
+        }
+        Set<String> allowed = whitelist.get(command.aggregateType());
+        if (allowed == null || !allowed.contains(command.eventType())) {
+            throw new OutboxValidationException("eventType is not in whitelist: " + command.eventType());
+        }
     }
 
     private void validateNotification(Map<String, Object> payload) {
@@ -174,6 +202,39 @@ public class OutboxPayloadValidator {
                 throw new OutboxValidationException("payload contains plaintext phone at " + path);
             }
         }
+    }
+
+    private static void requireUuid(String value, String name) {
+        if (value == null || !UUID_PATTERN.matcher(value).matches()) {
+            throw new OutboxValidationException("envelope." + name + " must be a UUID");
+        }
+        try {
+            UUID.fromString(value);
+        } catch (IllegalArgumentException ex) {
+            throw new OutboxValidationException("envelope." + name + " must be a UUID");
+        }
+    }
+
+    private static void requireLength(String value, String name, int max) {
+        if (value == null || value.isBlank()) {
+            throw new OutboxValidationException("envelope." + name + " is required");
+        }
+        if (value.length() > max) {
+            throw new OutboxValidationException("envelope." + name + " exceeds " + max + " chars");
+        }
+    }
+
+    private static void requireOptionalLength(String value, String name, int max) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        if (value.length() > max) {
+            throw new OutboxValidationException("envelope." + name + " exceeds " + max + " chars");
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private static void require(Map<String, Object> payload, String key) {

@@ -75,6 +75,8 @@ paths:
     $ref: "./paths/app-account.yaml#/deleteAccountDevice"
   /app/account/cancel:
     $ref: "./paths/app-account.yaml#/cancelAccount"
+  /app/account/cancel/revoke:
+    $ref: "./paths/app-account.yaml#/revokeAccountCancel"
   /app/member/binding:
     get:
       $ref: "./paths/app-member.yaml#/getBinding/get"

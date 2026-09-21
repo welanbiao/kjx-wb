@@ -6,7 +6,11 @@ WorkType:
 
 WorkStatus:
   type: string
-  description: 作品状态。公开列表仅返回 PUBLISHED/GRAY（灰度需再经可见性服务）。
+  description: |
+    作品状态。公开列表仅返回 PUBLISHED/GRAY（灰度需再经可见性服务）。
+    GRAY 对同一 accountId+workId 使用稳定哈希分桶 0-99（CRC32 of "accountId:workId"），
+    bucket < grayRatio 则可见；跨进程稳定，禁止内存随机或 Objects.hash。
+    UNPUBLISHED 不进公开列表；已有 entitlement 时详情仍可访问。
   enum:
     - DRAFT
     - PENDING_REVIEW

@@ -6,7 +6,9 @@ listWorks:
     summary: 作品列表
     description: |
       公开列表仅含 PUBLISHED/GRAY，并经同一 WorkVisibilityService 过滤。
+      GRAY 分桶对同一 accountId+workId 跨进程稳定。
       unlocked=true 时包含当前账号已解锁但已下架的作品。
+      本包不实现解锁；POST /app/works/{workCode}/unlock 由 WP-13 实现，且必须调用同一可见性服务。
     security:
       - AppBearer: []
     parameters:
@@ -38,7 +40,10 @@ getWork:
       - App Work
     operationId: getWork
     summary: 作品详情
-    description: 可见性与列表、解锁使用同一规则。已有 entitlement 时下架作品仍可访问。
+    description: |
+      可见性与列表、解锁使用同一 WorkVisibilityService。
+      已有 entitlement 时下架作品仍可访问；无权益的下架返回 1008 WORK_UNPUBLISHED。
+      灰度未命中与不存在均按 404，避免泄露草稿/未命中灰度。
     security:
       - AppBearer: []
     parameters:

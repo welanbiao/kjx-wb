@@ -55,10 +55,10 @@ WP-02 迁移在模块 classpath：
 `kjx-server` 建议：
 
 ```yaml
-spring.flyway.locations: classpath*:db/migration
+spring.flyway.locations: classpath:db/migration
 ```
 
-或显式列出两模块的 `classpath:db/migration`。版本号不重叠，可与 WP-01 的 V1xx 段衔接。
+标准 `classpath:` 会扫描依赖 JAR；Flyway 不接受 Spring 风格的 `classpath*:`。版本号不重叠，可与 WP-01 的 V1.x 段衔接。
 
 **V102 说明**：`kjx_outbox_consume_receipt` **不是** docs/13 冻结表，未改 `kjx_outbox_event` 列。用于 `event_id + channel` 消费幂等。若集成策略要求该表先 ADR，可暂缓合入 V102，保留 `ConsumerIdempotencyPort` 接口。
 

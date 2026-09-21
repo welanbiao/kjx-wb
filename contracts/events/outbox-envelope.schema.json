@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kjx.local/contracts/events/outbox-envelope.schema.json",
   "title": "KjxOutboxEnvelope",
-  "description": "Transactional Outbox 事件信封。对应 kjx_outbox_event 行及投递消息体。payload 必须脱敏并带 schemaVersion。至少一次投递；消费者按 eventId 或业务唯一键幂等。",
+  "description": "Transactional Outbox 事件信封。kjx_outbox_event.payload JSON 列保存本对象（业务体嵌套在 payload 字段）。Publisher 收到完整信封。payload 必须脱敏并带 schemaVersion。至少一次投递；消费者按 eventId 或业务唯一键幂等。外部 SMS 仍是至少一次，向支持幂等的提供方传 eventId。",
   "type": "object",
   "additionalProperties": false,
   "required": [

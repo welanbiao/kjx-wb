@@ -355,3 +355,30 @@ cancelAccount:
         $ref: "../../schemas/common.yaml#/responses/Unauthorized"
       "403":
         $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+revokeAccountCancel:
+  post:
+    tags:
+      - App Account
+    operationId: revokeAccountCancel
+    summary: 撤销注销（冷静期内）
+    description: |
+      冻结清单 docs/13 仅列 POST /app/account/cancel。本操作为 WP-10 冷静期撤销，
+      路径待集成 Agent 合入 openapi.yaml：POST /app/account/cancel/revoke。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 已撤销注销申请
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"

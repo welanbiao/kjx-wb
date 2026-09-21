@@ -1,0 +1,205 @@
+name: kjx-dev
+
+# M1 开发栈：默认只启动 MySQL 8.4 + Redis 8。
+# 不要在本文件加入 AI 网关、分析型 OLAP 或观测栈。
+#
+# 仓库根目录：
+#   docker compose --env-file .env -f deploy/compose/docker-compose.dev.yml up -d
+#   docker compose --env-file .env -f deploy/compose/docker-compose.dev.yml --profile proxy up -d
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: kjx-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-koujunxin}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_USER: ${MYSQL_USER:-kjx}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    command:
+      - --explicit-defaults-for-timestamp=ON
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --slow-query-log=1
+      - --long-query-time=1
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - kjx_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  redis:
+    image: redis:8-alpine
+    container_name: kjx-redis
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - kjx_redis_data:/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -x PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  nginx:
+    profiles: ["proxy"]
+    image: nginx:1.27-alpine
+    container_name: kjx-nginx
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      BACKEND_UPSTREAM: ${BACKEND_UPSTREAM:-host.docker.internal:8080}
+      WEB_UPSTREAM: ${WEB_UPSTREAM:-host.docker.internal:3000}
+      ADMIN_UPSTREAM: ${ADMIN_UPSTREAM:-host.docker.internal:3001}
+    ports:
+      - "127.0.0.1:${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/templates/dev.conf.template:/etc/nginx/templates/default.conf.template:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend:
+    profiles: ["backend"]
+    image: maven:3.9-eclipse-temurin-21
+    container_name: kjx-server
+    working_dir: /workspace
+    environment:
+      TZ: Asia/Shanghai
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-koujunxin}?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-kjx}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+      PHONE_CRYPTO_KEY: ${PHONE_CRYPTO_KEY:-dev-only-phone-crypto-key-32byte}
+      PHONE_HMAC_SECRET: ${PHONE_HMAC_SECRET:-dev-only-phone-hmac-secret-do-not-use}
+      SA_TOKEN_JWT_SECRET_KEY: ${SA_TOKEN_JWT_SECRET_KEY:-dev-only-satoken-secret-change-me}
+    volumes:
+      - ../../backend:/workspace
+      - kjx_m2_cache:/root/.m2
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        if [ ! -f pom.xml ]; then
+          echo "backend/pom.xml missing; refuse to start a placeholder server" >&2
+          exit 1
+        fi
+        mvn -B -ntp -pl kjx-server -am spring-boot:run
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    profiles: ["frontend"]
+    image: node:22-alpine
+    container_name: kjx-web
+    working_dir: /workspace
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ../../apps:/workspace
+    command:
+      - sh
+      - -lc
+      - |
+        set -euo pipefail
+        if [ ! -f web/package.json ]; then
+          echo "apps/web/package.json missing; refuse to start" >&2
+          exit 1
+        fi
+        if [ -f package-lock.json ]; then
+          npm ci
+          npm run dev -w @kjx/web -- --hostname 0.0.0.0 --port 3000
+        elif [ -f pnpm-lock.yaml ]; then
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm --filter @kjx/web dev --hostname 0.0.0.0 --port 3000
+        elif [ -f web/package-lock.json ]; then
+          cd web
+          npm ci
+          npm run dev -- --hostname 0.0.0.0 --port 3000
+        else
+          echo "apps lockfile missing; skip-style install is forbidden" >&2
+          exit 1
+        fi
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+
+  admin:
+    profiles: ["frontend"]
+    image: node:22-alpine
+    container_name: kjx-admin
+    working_dir: /workspace
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ../../apps:/workspace
+    command:
+      - sh
+      - -lc
+      - |
+        set -euo pipefail
+        if [ ! -f admin/package.json ]; then
+          echo "apps/admin/package.json missing; refuse to start" >&2
+          exit 1
+        fi
+        if [ -f package-lock.json ]; then
+          npm ci
+          npm run dev -w @kjx/admin -- --host 0.0.0.0 --port 3001
+        elif [ -f pnpm-lock.yaml ]; then
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm --filter @kjx/admin dev --host 0.0.0.0 --port 3001
+        elif [ -f admin/package-lock.json ]; then
+          cd admin
+          npm ci
+          npm run dev -- --host 0.0.0.0 --port 3001
+        else
+          echo "apps lockfile missing; skip-style install is forbidden" >&2
+          exit 1
+        fi
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-3001}:3001"
+
+volumes:
+  kjx_mysql_data:
+  kjx_redis_data:
+  kjx_m2_cache:

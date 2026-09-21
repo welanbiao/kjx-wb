@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>koujunxin-backend</artifactId>
+    <version>${revision}</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>ruoyi-common</artifactId>
+  <packaging>pom</packaging>
+  <name>ruoyi-common</name>
+  <description>RuoYi-Vue-Plus v5.2.3 common 裁剪聚合。源码可追溯，禁止整仓复制。</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+
+  <modules>
+    <module>ruoyi-common-core</module>
+    <module>ruoyi-common-json</module>
+    <module>ruoyi-common-redis</module>
+    <module>ruoyi-common-satoken</module>
+    <module>ruoyi-common-mybatis</module>
+    <module>ruoyi-common-web</module>
+    <module>ruoyi-common-ratelimiter</module>
+    <module>ruoyi-common-log</module>
+    <module>ruoyi-common-excel</module>
+    <module>ruoyi-common-idempotent</module>
+  </modules>
+</project>

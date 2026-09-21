@@ -1,0 +1,368 @@
+SendCodeRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - phone
+    - scene
+    - captchaId
+    - captchaData
+  properties:
+    phone:
+      $ref: "../../schemas/common.yaml#/schemas/Phone"
+    scene:
+      type: string
+      description: 验证码场景。改密走已登录 PUT /app/account/password，不使用本接口。
+      enum:
+        - register
+        - login
+        - reset_pwd
+        - cancel
+    captchaId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: tianai-captcha 挑战 ID。
+    captchaData:
+      type: object
+      additionalProperties: true
+      description: 滑块/点选结果，透传 tianai-captcha matching 入参。
+
+SendCodeData:
+  type: object
+  additionalProperties: false
+  required:
+    - expireIn
+  properties:
+    expireIn:
+      type: integer
+      minimum: 1
+      example: 300
+      description: 验证码有效期（秒）。
+
+SendCodeResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SendCodeData"
+
+RegisterRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - phone
+    - password
+    - code
+    - agreeTerms
+  properties:
+    phone:
+      $ref: "../../schemas/common.yaml#/schemas/Phone"
+    password:
+      $ref: "../../schemas/common.yaml#/schemas/Password"
+    code:
+      type: string
+      pattern: '^\d{6}$'
+      description: 短信验证码。
+    agreeTerms:
+      type: boolean
+      description: 必须为 true。
+      enum:
+        - true
+
+RegisterData:
+  type: object
+  additionalProperties: false
+  required:
+    - token
+    - accountId
+  properties:
+    token:
+      type: string
+      description: Sa-Token，loginType=app。前端应放入 httpOnly Cookie，禁止写入 localStorage。
+    accountId:
+      type: integer
+      format: int64
+
+RegisterResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/RegisterData"
+
+LoginRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - phone
+    - password
+  properties:
+    phone:
+      $ref: "../../schemas/common.yaml#/schemas/Phone"
+    password:
+      $ref: "../../schemas/common.yaml#/schemas/Password"
+
+LoginByCodeRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - phone
+    - code
+  properties:
+    phone:
+      $ref: "../../schemas/common.yaml#/schemas/Phone"
+    code:
+      type: string
+      pattern: '^\d{6}$'
+
+AccountBrief:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+  properties:
+    id:
+      type: integer
+      format: int64
+    nickname:
+      type: string
+      nullable: true
+      maxLength: 64
+    avatar:
+      type: string
+      nullable: true
+      maxLength: 512
+    phoneMask:
+      type: string
+      nullable: true
+      description: 掩码手机号，如 138****8000。禁止回说明文。
+
+BindStatus:
+  type: integer
+  description: 0未绑定 1审核中 2已绑定 3已驳回 4解绑中
+  enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+
+LoginData:
+  type: object
+  additionalProperties: false
+  required:
+    - token
+    - expireIn
+    - account
+    - bindStatus
+  properties:
+    token:
+      type: string
+    expireIn:
+      type: integer
+      example: 2592000
+      description: 令牌有效期（秒）。
+    account:
+      $ref: "#/AccountBrief"
+    bindStatus:
+      $ref: "#/BindStatus"
+    member:
+      description: 已绑定则返回会员快照，否则为 null。
+      type: object
+      nullable: true
+      allOf:
+        - $ref: "./member.yaml#/MemberSnapshot"
+
+LoginResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/LoginData"
+
+ResetPasswordRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - phone
+    - code
+    - newPassword
+  properties:
+    phone:
+      $ref: "../../schemas/common.yaml#/schemas/Phone"
+    code:
+      type: string
+      pattern: '^\d{6}$'
+    newPassword:
+      $ref: "../../schemas/common.yaml#/schemas/Password"
+
+ChangePasswordRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - oldPassword
+    - newPassword
+  properties:
+    oldPassword:
+      $ref: "../../schemas/common.yaml#/schemas/Password"
+    newPassword:
+      $ref: "../../schemas/common.yaml#/schemas/Password"
+
+UpdateProfileRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    nickname:
+      type: string
+      minLength: 1
+      maxLength: 64
+    avatar:
+      type: string
+      maxLength: 512
+      description: 头像 URL，须来自平台上传接口。
+
+AccountProfile:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - status
+    - bindStatus
+    - createTime
+  properties:
+    id:
+      type: integer
+      format: int64
+    nickname:
+      type: string
+      nullable: true
+    avatar:
+      type: string
+      nullable: true
+    phoneMask:
+      type: string
+      nullable: true
+    status:
+      type: integer
+      description: 1正常 2锁定 3注销中 4已注销
+      enum:
+        - 1
+        - 2
+        - 3
+        - 4
+    bindStatus:
+      $ref: "#/BindStatus"
+    cancelApplyAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    lastLoginAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    createTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+
+AccountProfileResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AccountProfile"
+
+DeviceItem:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - deviceId
+    - current
+  properties:
+    id:
+      type: integer
+      format: int64
+    deviceId:
+      type: string
+    deviceName:
+      type: string
+      nullable: true
+    platform:
+      type: string
+      nullable: true
+      enum:
+        - web
+        - ios
+        - android
+    lastRegion:
+      type: string
+      nullable: true
+    lastActiveAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    current:
+      type: boolean
+      description: 是否为当前会话设备。禁止返回 token 或 token_hash。
+
+DeviceListResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/DeviceItem"
+
+CancelAccountRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - code
+  properties:
+    code:
+      type: string
+      pattern: '^\d{6}$'
+      description: scene=cancel 的短信验证码。
+    reason:
+      type: string
+      maxLength: 255
+
+CancelAccountData:
+  type: object
+  additionalProperties: false
+  required:
+    - cancelApplyAt
+    - effectiveAt
+  properties:
+    cancelApplyAt:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    effectiveAt:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+      description: 冷静期结束时刻（申请后 7 天）。
+
+CancelAccountResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/CancelAccountData"
+
+OkEmptyResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      properties:
+        data:
+          $ref: "../../schemas/common.yaml#/schemas/EmptyObject"

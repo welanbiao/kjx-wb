@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kjx.local/contracts/events/analytics.schema.json",
+  "title": "KjxAnalyticsProjectionPayload",
+  "description": "ClickHouse 分析投影事件。仅 ACCESS / AI_CALL / TOOL_CALL。禁止用于权限、权益、余额或状态判断。不含请求体、Cookie、Authorization、Key 与对话原文。",
+  "oneOf": [
+    { "$ref": "#/$defs/AccessProjected" },
+    { "$ref": "#/$defs/AiCallProjected" },
+    { "$ref": "#/$defs/ToolCallProjected" }
+  ],
+  "discriminator": {
+    "propertyName": "category",
+    "mapping": {
+      "ACCESS": "#/$defs/AccessProjected",
+      "AI_CALL": "#/$defs/AiCallProjected",
+      "TOOL_CALL": "#/$defs/ToolCallProjected"
+    }
+  },
+  "$defs": {
+    "ProjectionBase": {
+      "type": "object",
+      "required": ["schemaVersion", "category", "occurredAt", "requestId"],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["ACCESS", "AI_CALL", "TOOL_CALL"]
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "traceId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "accountId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memberId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memberCodeMask": {
+          "type": "string",
+          "description": "会员编码脱敏，保留前 3 后 2。"
+        },
+        "workCode": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "AccessProjected": {
+      "allOf": [
+        { "$ref": "#/$defs/ProjectionBase" },
+        {
+          "type": "object",
+          "required": ["category", "method", "path", "status"],
+          "properties": {
+            "category": { "const": "ACCESS" },
+            "method": {
+              "type": "string",
+              "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "queryKeys": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Only query parameter names, never values."
+            },
+            "status": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "respBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "latencyMs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rateLimited": {
+              "type": "boolean"
+            },
+            "upstreamMs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "loginType": {
+              "type": "string",
+              "enum": ["app", "admin", "anonymous"]
+            }
+          }
+        }
+      ]
+    },
+    "AiCallProjected": {
+      "allOf": [
+        { "$ref": "#/$defs/ProjectionBase" },
+        {
+          "type": "object",
+          "required": ["category", "channel", "provider", "model"],
+          "properties": {
+            "category": { "const": "AI_CALL" },
+            "channel": {
+              "type": "string",
+              "enum": ["PLATFORM", "BYOK"]
+            },
+            "credentialId": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "BYOK 凭据 ID，不记 Key。"
+            },
+            "provider": { "type": "string" },
+            "model": { "type": "string" },
+            "modelTier": { "type": "string" },
+            "promptVersionId": { "type": "string" },
+            "promptMode": {
+              "type": "string",
+              "enum": ["SERVER", "PACKAGE", "BOTH"]
+            },
+            "messagesCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stream": { "type": "boolean" },
+            "outcome": {
+              "type": "string",
+              "enum": ["SUCCESS", "FAILED", "DEGRADED"]
+            },
+            "degradeLevel": {
+              "type": "string",
+              "enum": ["TOOL", "JSON_SCHEMA", "PROMPT_RETRY"]
+            },
+            "latencyMs": { "type": "integer", "minimum": 0 },
+            "firstTokenMs": { "type": "integer", "minimum": 0 },
+            "inputTokens": { "type": "integer", "minimum": 0 },
+            "outputTokens": { "type": "integer", "minimum": 0 },
+            "cachedTokens": { "type": "integer", "minimum": 0 },
+            "costAmount": { "type": "number", "minimum": 0 },
+            "retryCount": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "ToolCallProjected": {
+      "allOf": [
+        { "$ref": "#/$defs/ProjectionBase" },
+        {
+          "type": "object",
+          "required": ["category", "toolName", "outcome"],
+          "properties": {
+            "category": { "const": "TOOL_CALL" },
+            "toolName": { "type": "string" },
+            "toolVersion": { "type": "string" },
+            "toolType": {
+              "type": "string",
+              "enum": ["builtin", "custom"]
+            },
+            "implKind": {
+              "type": "string",
+              "enum": ["builtin", "compose"]
+            },
+            "durationMs": { "type": "integer", "minimum": 0 },
+            "uiOpsCount": { "type": "integer", "minimum": 0 },
+            "outcome": {
+              "type": "string",
+              "enum": ["SUCCESS", "REJECTED", "FAILED", "TIMEOUT", "RATE_LIMITED"]
+            },
+            "rejectReason": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "preconditionResults": {
+              "type": "object",
+              "additionalProperties": { "type": "boolean" },
+              "description": "登录/权益/会话/频控等前置判定，不记会员 VALID。"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

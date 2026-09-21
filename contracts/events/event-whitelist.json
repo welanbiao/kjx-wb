@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "aggregates": {
+    "account": [
+      "account.registered",
+      "account.password_changed",
+      "account.cancel_scheduled"
+    ],
+    "member": [
+      "member.updated"
+    ],
+    "binding": [
+      "binding.approved",
+      "binding.rejected",
+      "binding.force_unbound"
+    ],
+    "entitlement": [
+      "entitlement.granted",
+      "entitlement.revoked"
+    ],
+    "unlock": [
+      "unlock.recorded"
+    ],
+    "work": [
+      "work.published",
+      "work.unpublished"
+    ],
+    "notification": [
+      "notification.requested"
+    ],
+    "analytics": [
+      "analytics.access.projected",
+      "analytics.ai_call.projected",
+      "analytics.tool_call.projected"
+    ]
+  }
+}

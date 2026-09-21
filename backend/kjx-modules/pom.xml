@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>koujunxin-backend</artifactId>
+    <version>${revision}</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>kjx-modules</artifactId>
+  <packaging>pom</packaging>
+  <name>kjx-modules</name>
+  <description>自研业务模块聚合。模块间只依赖公开 api/port，禁止跨模块 Mapper/Entity。</description>
+
+  <modules>
+    <module>kjx-runtime-api</module>
+    <module>kjx-account</module>
+    <module>kjx-work</module>
+    <module>kjx-member</module>
+    <module>kjx-billing</module>
+    <module>kjx-channel</module>
+    <module>kjx-ai</module>
+    <module>kjx-runtime</module>
+    <module>kjx-tool</module>
+    <module>kjx-notification</module>
+    <module>kjx-log</module>
+  </modules>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

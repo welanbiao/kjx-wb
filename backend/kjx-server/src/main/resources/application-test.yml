@@ -1,0 +1,21 @@
+# 骨架/ArchUnit 测试：不连 MySQL/Redis，不跑 Flyway。
+spring:
+  main:
+    banner-mode: off
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.dromara.common.redis.config.RedisConfig
+      - org.dromara.common.redis.config.CacheConfig
+      - org.dromara.common.satoken.config.SaTokenConfig
+      - org.dromara.common.mybatis.config.MybatisPlusConfig
+      - org.dromara.common.ratelimiter.config.RateLimiterConfig
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  flyway:
+    enabled: false
+  datasource:
+    url: ""

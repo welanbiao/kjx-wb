@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>ruoyi-common</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>ruoyi-common-mybatis</artifactId>
+  <name>ruoyi-common-mybatis</name>
+  <description>RuoYi-Vue-Plus v5.2.3 MyBatis-Plus 与 @DataPermission。单数据源，不引入 dynamic-datasource/p6spy。</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>ruoyi-common-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>ruoyi-common-satoken</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-jsqlparser</artifactId>
+    </dependency>
+  </dependencies>
+</project>

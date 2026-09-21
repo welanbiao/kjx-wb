@@ -1,0 +1,231 @@
+selfHost:
+  get:
+    tags:
+      - Admin Host Self
+    operationId: getSelfHost
+    summary: 我的主播信息
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 当前 HOST 部门扩展信息
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/HostSelfInfoResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+selfMemberPage:
+  get:
+    tags:
+      - Admin Host Self
+    operationId: pageSelfMembers
+    summary: 我的会员列表
+    description: 仅本部门数据。后端必须执行数据权限，前端隐藏不算权限。
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: douyinId
+        schema:
+          type: string
+      - in: query
+        name: memberCode
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          $ref: "../schemas/member.yaml#/MemberStatus"
+      - in: query
+        name: bindState
+        schema:
+          type: integer
+          enum:
+            - 0
+            - 1
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页会员
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+createSelfMember:
+  post:
+    tags:
+      - Admin Host Self
+    operationId: createSelfMember
+    summary: 录入会员并生成编码
+    description: |
+      subscribedMonths、subscribedDays、expireAt 三者均必填，服务端不得互相推导。
+      成功后生成 {HOST_CODE}-{8位随机码}，排除 O/0/I/1/L。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/CreateHostMemberRequest"
+          example:
+            douyinId: zhangsan
+            subscribedMonths: 15
+            subscribedDays: 435
+            expireAt: "2027-08-09T23:59:59.999+08:00"
+            remark: ""
+    responses:
+      "200":
+        description: 已生成会员编码
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/CreateHostMemberResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+updateSelfMember:
+  put:
+    tags:
+      - Admin Host Self
+    operationId: updateSelfMember
+    summary: 修改我的会员
+    description: 可改到期时间、已订阅天数、月数。关键修改必须带 reason。改月数不得改额度。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/UpdateHostMemberRequest"
+    responses:
+      "200":
+        description: 已更新
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+getSelfMemberCode:
+  get:
+    tags:
+      - Admin Host Self
+    operationId: getSelfMemberCode
+    summary: 查看会员编码
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 会员编码
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/MemberCodeResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+selfBindingPage:
+  get:
+    tags:
+      - Admin Host Self
+    operationId: pageSelfBindings
+    summary: 我的会员绑定状态
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+            - PENDING_REVIEW
+            - MATCHED
+            - REJECTED
+            - UNBINDING
+      - in: query
+        name: memberCode
+        schema:
+          type: string
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页绑定
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminBindingPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+exportSelfMembers:
+  get:
+    tags:
+      - Admin Host Self
+    operationId: exportSelfMembers
+    summary: 导出我的会员列表
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          $ref: "../schemas/member.yaml#/MemberStatus"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 导出文件
+        content:
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              type: string
+              format: binary
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"

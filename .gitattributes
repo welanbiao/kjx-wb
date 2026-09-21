@@ -1,0 +1,47 @@
+# Default: normalize to LF in the repo
+* text=auto eol=lf
+
+# Windows helper scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Explicit text types
+*.java text
+*.kt text
+*.xml text
+*.yml text
+*.yaml text
+*.json text
+*.md text
+*.sql text
+*.sh text eol=lf
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.vue text
+*.css text
+*.scss text
+*.html text
+*.properties text
+*.gitignore text
+*.env.example text
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.jar binary
+*.war binary
+*.zip binary
+*.gz binary
+*.7z binary
+*.pdf binary

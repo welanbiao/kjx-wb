@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kjx.local/contracts/events/notification.schema.json",
+  "title": "KjxNotificationRequestedPayload",
+  "description": "通知 Outbox payload。消费者按 eventId+channel 幂等：先落站内信，再调用 SMS4J。禁止在业务事务内直接发短信。payload 不含明文手机号。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "templateCode",
+    "channels",
+    "accountId"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "templateCode": {
+      "type": "string",
+      "enum": [
+        "ACCOUNT_REGISTERED",
+        "SECURITY_LOGIN",
+        "SECURITY_PASSWORD_CHANGED",
+        "BINDING_APPROVED",
+        "BINDING_REJECTED",
+        "BINDING_FORCE_UNBOUND",
+        "MEMBER_UPDATED",
+        "ENTITLEMENT_GRANTED",
+        "ENTITLEMENT_REVOKED",
+        "ACCOUNT_CANCEL_SCHEDULED"
+      ]
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["INBOX", "SMS"]
+      }
+    },
+    "accountId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "memberId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "deptId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "inboxType": {
+      "type": "string",
+      "enum": ["SYSTEM", "SECURITY", "BENEFIT", "ACTIVITY"]
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "content": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "已脱敏文案。禁止写入完整手机号或验证码。"
+    },
+    "link": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "phoneMask": {
+      "type": "string",
+      "description": "可选掩码，如 138****8000。禁止明文。"
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"]
+      }
+    }
+  }
+}

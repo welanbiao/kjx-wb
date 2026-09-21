@@ -1,0 +1,357 @@
+sendCode:
+  post:
+    tags:
+      - App Auth
+    operationId: sendCode
+    summary: 发送短信验证码
+    description: 先校验 tianai-captcha，再频控并发码。验证码只存 Redis 哈希。
+    security: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/SendCodeRequest"
+    responses:
+      "200":
+        description: 已受理发送
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/SendCodeResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+      "500":
+        $ref: "../../schemas/common.yaml#/responses/InternalError"
+
+register:
+  post:
+    tags:
+      - App Auth
+    operationId: register
+    summary: 手机号注册
+    description: 仅支持手机号，不开放邮箱注册。成功后签发 loginType=app 令牌。
+    security: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/RegisterRequest"
+    responses:
+      "200":
+        description: 注册成功
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/RegisterResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+      "500":
+        $ref: "../../schemas/common.yaml#/responses/InternalError"
+
+login:
+  post:
+    tags:
+      - App Auth
+    operationId: loginByPassword
+    summary: 密码登录
+    security: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeaderOptional"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/LoginRequest"
+    responses:
+      "200":
+        description: 登录成功
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/LoginResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+      "500":
+        $ref: "../../schemas/common.yaml#/responses/InternalError"
+
+loginByCode:
+  post:
+    tags:
+      - App Auth
+    operationId: loginByCode
+    summary: 验证码登录
+    security: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeaderOptional"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/LoginByCodeRequest"
+    responses:
+      "200":
+        description: 登录成功
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/LoginResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+      "500":
+        $ref: "../../schemas/common.yaml#/responses/InternalError"
+
+logout:
+  post:
+    tags:
+      - App Auth
+    operationId: logout
+    summary: 登出
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 已登出
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+refresh:
+  post:
+    tags:
+      - App Auth
+    operationId: refreshToken
+    summary: 刷新令牌
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 刷新成功
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/LoginResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+resetPassword:
+  post:
+    tags:
+      - App Auth
+    operationId: resetPassword
+    summary: 短信验证码重置密码
+    security: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/ResetPasswordRequest"
+    responses:
+      "200":
+        description: 重置成功
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+
+accountProfile:
+  get:
+    tags:
+      - App Account
+    operationId: getAccountProfile
+    summary: 获取账号资料
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 账号资料
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/AccountProfileResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+  put:
+    tags:
+      - App Account
+    operationId: updateAccountProfile
+    summary: 修改昵称或头像
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/UpdateProfileRequest"
+    responses:
+      "200":
+        description: 已更新
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/AccountProfileResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+changePassword:
+  put:
+    tags:
+      - App Account
+    operationId: changePassword
+    summary: 修改密码
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/ChangePasswordRequest"
+    responses:
+      "200":
+        description: 已修改
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+accountDevices:
+  get:
+    tags:
+      - App Account
+    operationId: listAccountDevices
+    summary: 登录设备列表
+    description: 不返回 token 或 token_hash。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 设备列表
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/DeviceListResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+deleteAccountDevice:
+  delete:
+    tags:
+      - App Account
+    operationId: deleteAccountDevice
+    summary: 下线指定设备
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 已下线
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+cancelAccount:
+  post:
+    tags:
+      - App Account
+    operationId: cancelAccount
+    summary: 申请注销（7 天冷静期）
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/account.yaml#/CancelAccountRequest"
+    responses:
+      "200":
+        description: 已进入冷静期
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/CancelAccountResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"

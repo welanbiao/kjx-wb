@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: 叩君芯会员产品平台 API
+  version: 1.0.0
+  description: |
+    M1/M2 冻结契约。权威来源：docs/13-统一架构DDL与接口契约基线.md。
+
+    路径前缀：
+    - `/app/auth/**` C 端匿名认证
+    - `/app/**` C 端登录接口，loginType=app
+    - `/admin-api/kjx/self/**` HOST 自助，loginType=admin + 部门权限
+    - `/admin-api/kjx/**` 运营接口，loginType=admin + 权限点
+
+    旧 `/api/**` 全部废止，不提供双轨。`/v1/**` 为 M3 OpenAI 兼容代理，本文件不收录。
+
+    错误码常量只允许定义在 `contracts/errors.yaml`。
+  contact:
+    name: kjx contracts
+  license:
+    name: Proprietary
+    url: https://kjx.local/contracts
+
+servers:
+  - url: /
+    description: 经 Nginx 反代的相对根路径
+
+tags:
+  - name: App Auth
+    description: C 端认证。注册仅手机号。
+  - name: App Account
+    description: C 端账号资料、设备与注销。
+  - name: App Member
+    description: C 端绑定、主播列表、会员信息、申诉。
+  - name: App Work
+    description: 作品列表/详情、解锁、我的权益。解锁 path 使用 workCode。
+  - name: Admin Host Self
+    description: 主播自助。数据权限仅本部门。
+  - name: Admin Member
+    description: 运营会员、人工权益、重算。
+  - name: Admin Binding
+    description: 绑定审核、驳回、强制解绑。
+  - name: Admin Appeal
+    description: 申诉处理。
+  - name: Admin Unlock Record
+    description: 解锁记录查询与导出基础。
+  - name: Admin Work
+    description: 作品管理。
+  - name: Admin Host
+    description: 主播管理（部门扩展）。
+
+security: []
+
+paths:
+  /app/auth/send-code:
+    $ref: "./paths/app-account.yaml#/sendCode"
+  /app/auth/register:
+    $ref: "./paths/app-account.yaml#/register"
+  /app/auth/login:
+    $ref: "./paths/app-account.yaml#/login"
+  /app/auth/login-by-code:
+    $ref: "./paths/app-account.yaml#/loginByCode"
+  /app/auth/logout:
+    $ref: "./paths/app-account.yaml#/logout"
+  /app/auth/refresh:
+    $ref: "./paths/app-account.yaml#/refresh"
+  /app/auth/reset-password:
+    $ref: "./paths/app-account.yaml#/resetPassword"
+  /app/account/profile:
+    $ref: "./paths/app-account.yaml#/accountProfile"
+  /app/account/password:
+    $ref: "./paths/app-account.yaml#/changePassword"
+  /app/account/devices:
+    $ref: "./paths/app-account.yaml#/accountDevices"
+  /app/account/devices/{id}:
+    $ref: "./paths/app-account.yaml#/deleteAccountDevice"
+  /app/account/cancel:
+    $ref: "./paths/app-account.yaml#/cancelAccount"
+  /app/member/binding:
+    get:
+      $ref: "./paths/app-member.yaml#/getBinding/get"
+    post:
+      $ref: "./paths/app-member.yaml#/submitBinding/post"
+  /app/member/hosts:
+    $ref: "./paths/app-member.yaml#/listHosts"
+  /app/member/profile:
+    $ref: "./paths/app-member.yaml#/getMemberProfile"
+  /app/member/binding/appeal:
+    $ref: "./paths/app-member.yaml#/submitAppeal"
+  /app/works:
+    $ref: "./paths/app-work.yaml#/listWorks"
+  /app/works/{workCode}:
+    $ref: "./paths/app-work.yaml#/getWork"
+  /app/works/{workCode}/unlock:
+    $ref: "./paths/app-work.yaml#/unlockWork"
+  /app/entitlements:
+    $ref: "./paths/app-work.yaml#/listEntitlements"
+  /admin-api/kjx/self/host:
+    $ref: "./paths/admin-self.yaml#/selfHost"
+  /admin-api/kjx/self/member/page:
+    $ref: "./paths/admin-self.yaml#/selfMemberPage"
+  /admin-api/kjx/self/member:
+    $ref: "./paths/admin-self.yaml#/createSelfMember"
+  /admin-api/kjx/self/member/{id}:
+    $ref: "./paths/admin-self.yaml#/updateSelfMember"
+  /admin-api/kjx/self/member/{id}/code:
+    $ref: "./paths/admin-self.yaml#/getSelfMemberCode"
+  /admin-api/kjx/self/binding/page:
+    $ref: "./paths/admin-self.yaml#/selfBindingPage"
+  /admin-api/kjx/self/member/export:
+    $ref: "./paths/admin-self.yaml#/exportSelfMembers"
+  /admin-api/kjx/member/page:
+    $ref: "./paths/admin-ops.yaml#/adminMemberPage"
+  /admin-api/kjx/member:
+    $ref: "./paths/admin-ops.yaml#/createAdminMember"
+  /admin-api/kjx/member/{id}:
+    get:
+      $ref: "./paths/admin-ops.yaml#/getAdminMember/get"
+    put:
+      $ref: "./paths/admin-ops.yaml#/updateAdminMember/put"
+  /admin-api/kjx/member/{id}/entitlement:
+    $ref: "./paths/admin-ops.yaml#/adjustEntitlement"
+  /admin-api/kjx/member/{id}/recalc:
+    $ref: "./paths/admin-ops.yaml#/recalcMember"
+  /admin-api/kjx/binding/page:
+    $ref: "./paths/admin-ops.yaml#/adminBindingPage"
+  /admin-api/kjx/binding/{id}/approve:
+    $ref: "./paths/admin-ops.yaml#/approveBinding"
+  /admin-api/kjx/binding/{id}/reject:
+    $ref: "./paths/admin-ops.yaml#/rejectBinding"
+  /admin-api/kjx/binding/{id}/force-unbind:
+    $ref: "./paths/admin-ops.yaml#/forceUnbind"
+  /admin-api/kjx/appeal/page:
+    $ref: "./paths/admin-ops.yaml#/adminAppealPage"
+  /admin-api/kjx/appeal/{id}/handle:
+    $ref: "./paths/admin-ops.yaml#/handleAppeal"
+  /admin-api/kjx/unlock-record/page:
+    $ref: "./paths/admin-ops.yaml#/unlockRecordPage"
+  /admin-api/kjx/work/page:
+    $ref: "./paths/admin-ops.yaml#/adminWorkPage"
+  /admin-api/kjx/work:
+    $ref: "./paths/admin-ops.yaml#/createAdminWork"
+  /admin-api/kjx/work/{id}:
+    get:
+      $ref: "./paths/admin-ops.yaml#/getAdminWork/get"
+    put:
+      $ref: "./paths/admin-ops.yaml#/updateAdminWork/put"
+  /admin-api/kjx/host/page:
+    $ref: "./paths/admin-ops.yaml#/adminHostPage"
+  /admin-api/kjx/host:
+    $ref: "./paths/admin-ops.yaml#/createAdminHost"
+  /admin-api/kjx/host/{id}:
+    get:
+      $ref: "./paths/admin-ops.yaml#/getAdminHost/get"
+    put:
+      $ref: "./paths/admin-ops.yaml#/updateAdminHost/put"
+
+components:
+  securitySchemes:
+    AppBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sa-Token
+      description: C 端令牌，loginType=app。调用 /admin-api/** 必须 401。
+    AdminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sa-Token
+      description: 后台令牌，loginType=admin。调用 /app/** 必须 401。
+  parameters:
+    IdempotencyKeyHeader:
+      $ref: "../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+    DeviceIdHeader:
+      $ref: "../schemas/common.yaml#/parameters/DeviceIdHeader"
+    ClientVersionHeader:
+      $ref: "../schemas/common.yaml#/parameters/ClientVersionHeader"
+    RequestIdHeader:
+      $ref: "../schemas/common.yaml#/parameters/RequestIdHeader"
+    PageNoQuery:
+      $ref: "../schemas/common.yaml#/parameters/PageNoQuery"
+    PageSizeQuery:
+      $ref: "../schemas/common.yaml#/parameters/PageSizeQuery"
+    WorkCodePath:
+      $ref: "../schemas/common.yaml#/parameters/WorkCodePath"
+    IdPath:
+      $ref: "../schemas/common.yaml#/parameters/IdPath"
+  schemas:
+    DateTime:
+      $ref: "../schemas/common.yaml#/schemas/DateTime"
+    NullableDateTime:
+      $ref: "../schemas/common.yaml#/schemas/NullableDateTime"
+    RequestId:
+      $ref: "../schemas/common.yaml#/schemas/RequestId"
+    ApiEnvelope:
+      $ref: "../schemas/common.yaml#/schemas/ApiEnvelope"
+    ApiSuccess:
+      $ref: "../schemas/common.yaml#/schemas/ApiSuccess"
+    ApiError:
+      $ref: "../schemas/common.yaml#/schemas/ApiError"
+    PageQuery:
+      $ref: "../schemas/common.yaml#/schemas/PageQuery"
+    PageResult:
+      $ref: "../schemas/common.yaml#/schemas/PageResult"
+    ErrorName:
+      $ref: "../schemas/common.yaml#/schemas/ErrorName"
+  responses:
+    BadRequest:
+      $ref: "../schemas/common.yaml#/responses/BadRequest"
+    Unauthorized:
+      $ref: "../schemas/common.yaml#/responses/Unauthorized"
+    Forbidden:
+      $ref: "../schemas/common.yaml#/responses/Forbidden"
+    Conflict:
+      $ref: "../schemas/common.yaml#/responses/Conflict"
+    TooManyRequests:
+      $ref: "../schemas/common.yaml#/responses/TooManyRequests"
+    NotFound:
+      $ref: "../schemas/common.yaml#/responses/NotFound"
+    InternalError:
+      $ref: "../schemas/common.yaml#/responses/InternalError"

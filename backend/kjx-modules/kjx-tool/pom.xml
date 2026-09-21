@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>kjx-modules</artifactId>
+    <version>${revision}</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>kjx-tool</artifactId>
+  <packaging>jar</packaging>
+  <name>kjx-tool</name>
+  <description>工具体系：builtin / compose / 前置校验。只依赖 runtime-api，禁止依赖 kjx-runtime。</description>
+
+  <dependencies>
+    <!-- Runtime/Tool 中立端口 -->
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>kjx-runtime-api</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>ban-tool-runtime-coupling</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>true</searchTransitive>
+                  <excludes>
+                    <exclude>com.koujunxin:kjx-runtime</exclude>
+                  </excludes>
+                  <message>kjx-tool 不得依赖 kjx-runtime；跨模块协作只通过 kjx-runtime-api。</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

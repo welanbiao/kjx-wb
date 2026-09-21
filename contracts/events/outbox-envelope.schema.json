@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kjx.local/contracts/events/outbox-envelope.schema.json",
+  "title": "KjxOutboxEnvelope",
+  "description": "Transactional Outbox 事件信封。对应 kjx_outbox_event 行及投递消息体。payload 必须脱敏并带 schemaVersion。至少一次投递；消费者按 eventId 或业务唯一键幂等。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "aggregateType",
+    "aggregateId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "payload"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "事件 UUID，也是消费幂等键。"
+    },
+    "aggregateType": {
+      "type": "string",
+      "enum": [
+        "account",
+        "member",
+        "binding",
+        "entitlement",
+        "unlock",
+        "work",
+        "notification",
+        "analytics"
+      ]
+    },
+    "aggregateId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "eventType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "如 notification.requested、entitlement.granted、analytics.access.projected。"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601，+08:00。"
+    },
+    "traceId": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "requestId": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "payload": {
+      "type": "object",
+      "description": "已脱敏负载。禁止包含明文手机号、密码、token、Authorization、API Key、验证码。",
+      "required": ["schemaVersion"],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

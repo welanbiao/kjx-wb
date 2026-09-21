@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>ruoyi-common</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>ruoyi-common-log</artifactId>
+  <name>ruoyi-common-log</name>
+  <description>RuoYi-Vue-Plus v5.2.3 操作日志注解与事件</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>ruoyi-common-satoken</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.koujunxin</groupId>
+      <artifactId>ruoyi-common-json</artifactId>
+    </dependency>
+  </dependencies>
+</project>

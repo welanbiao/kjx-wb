@@ -1,0 +1,469 @@
+WorkType:
+  type: string
+  enum:
+    - layout
+    - game
+
+WorkStatus:
+  type: string
+  description: 作品状态。公开列表仅返回 PUBLISHED/GRAY（灰度需再经可见性服务）。
+  enum:
+    - DRAFT
+    - PENDING_REVIEW
+    - PUBLISHED
+    - GRAY
+    - UNPUBLISHED
+    - REJECTED
+
+AccessForm:
+  type: string
+  enum:
+    - A
+    - B
+    - C
+
+WorkSummary:
+  type: object
+  additionalProperties: false
+  required:
+    - workCode
+    - name
+    - workType
+    - status
+    - unlocked
+  properties:
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    name:
+      type: string
+    workType:
+      $ref: "#/WorkType"
+    summary:
+      type: string
+      nullable: true
+    coverUrl:
+      type: string
+      nullable: true
+    category:
+      type: string
+      nullable: true
+    tags:
+      type: array
+      items:
+        type: string
+    status:
+      $ref: "#/WorkStatus"
+    currentVersion:
+      type: string
+      nullable: true
+    accessForm:
+      $ref: "#/AccessForm"
+    unlocked:
+      type: boolean
+      description: 当前账号是否已持有 entitlement。
+    unlockedAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+
+WorkDetail:
+  allOf:
+    - $ref: "#/WorkSummary"
+    - type: object
+      properties:
+        screenshots:
+          type: array
+          items:
+            type: string
+        allowedChannels:
+          type: array
+          items:
+            type: string
+            enum:
+              - PLATFORM
+              - BYOK
+        contentVersion:
+          type: string
+          nullable: true
+        entryUrl:
+          type: string
+          nullable: true
+          description: 已解锁时返回运行时入口；未解锁为 null。
+        publishTime:
+          $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+
+WorkPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/WorkSummary"
+
+WorkPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/WorkPageData"
+
+WorkDetailResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/WorkDetail"
+
+UnlockResult:
+  type: object
+  additionalProperties: false
+  required:
+    - workCode
+    - unlockedCount
+    - remainCount
+    - alreadyUnlocked
+  properties:
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    unlockedCount:
+      type: integer
+      minimum: 0
+    remainCount:
+      type: integer
+      minimum: 0
+    entryUrl:
+      type: string
+      example: "/runtime/breakup-editor"
+    alreadyUnlocked:
+      type: boolean
+      description: true 表示已有 entitlement 或幂等重放（对应业务码 1010）。
+
+UnlockResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiEnvelope"
+    - type: object
+      required:
+        - code
+        - data
+      properties:
+        code:
+          type: integer
+          enum:
+            - 0
+            - 1010
+          description: 0 新解锁成功；1010 已解锁（HTTP 仍为 200）。
+        data:
+          $ref: "#/UnlockResult"
+
+EntitlementItem:
+  type: object
+  additionalProperties: false
+  required:
+    - workCode
+    - name
+    - workStatus
+    - unlockedAt
+    - source
+  properties:
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    name:
+      type: string
+    coverUrl:
+      type: string
+      nullable: true
+    workType:
+      $ref: "#/WorkType"
+    workStatus:
+      $ref: "#/WorkStatus"
+      description: 包含已下架作品，前端可进入但应标注。
+    unlockedAt:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    source:
+      type: string
+      enum:
+        - user
+        - official_add
+    entryUrl:
+      type: string
+
+EntitlementPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/EntitlementItem"
+
+EntitlementListResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/EntitlementPageData"
+
+UnlockSource:
+  type: string
+  enum:
+    - user
+    - official_add
+    - official_remove
+    - fix
+
+UnlockRecord:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - deptId
+    - memberId
+    - workCode
+    - unlockTime
+    - result
+    - source
+  properties:
+    id:
+      type: integer
+      format: int64
+    deptId:
+      type: integer
+      format: int64
+    memberId:
+      type: integer
+      format: int64
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    douyinId:
+      type: string
+      nullable: true
+    accountId:
+      type: integer
+      format: int64
+      nullable: true
+    workId:
+      type: integer
+      format: int64
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    workName:
+      type: string
+      nullable: true
+    workVersion:
+      type: string
+      nullable: true
+    unlockTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    beforeUnlockedCount:
+      type: integer
+    afterUnlockedCount:
+      type: integer
+    beforeRemainCount:
+      type: integer
+    afterRemainCount:
+      type: integer
+    result:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILED
+    failReason:
+      type: string
+      nullable: true
+    source:
+      $ref: "#/UnlockSource"
+    operatorId:
+      type: integer
+      format: int64
+      nullable: true
+
+UnlockRecordPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/UnlockRecord"
+
+UnlockRecordPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/UnlockRecordPageData"
+
+AdminWork:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - workCode
+    - name
+    - workType
+    - status
+  properties:
+    id:
+      type: integer
+      format: int64
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    name:
+      type: string
+    workType:
+      $ref: "#/WorkType"
+    summary:
+      type: string
+      nullable: true
+    coverUrl:
+      type: string
+      nullable: true
+    category:
+      type: string
+      nullable: true
+    tags:
+      type: array
+      items:
+        type: string
+    status:
+      $ref: "#/WorkStatus"
+    currentVersion:
+      type: string
+      nullable: true
+    contentVersion:
+      type: string
+      nullable: true
+    accessForm:
+      $ref: "#/AccessForm"
+    grayRatio:
+      type: integer
+      minimum: 0
+      maximum: 100
+    sortWeight:
+      type: integer
+    publishTime:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    createTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+
+CreateWorkRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - workCode
+    - name
+    - workType
+    - reason
+  properties:
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 128
+    workType:
+      $ref: "#/WorkType"
+    summary:
+      type: string
+      maxLength: 500
+    coverUrl:
+      type: string
+      maxLength: 512
+    category:
+      type: string
+      maxLength: 32
+    tags:
+      type: array
+      items:
+        type: string
+    accessForm:
+      $ref: "#/AccessForm"
+    grayRatio:
+      type: integer
+      minimum: 0
+      maximum: 100
+      default: 0
+    sortWeight:
+      type: integer
+      default: 0
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+UpdateWorkRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    name:
+      type: string
+      maxLength: 128
+    summary:
+      type: string
+      maxLength: 500
+    coverUrl:
+      type: string
+      maxLength: 512
+    category:
+      type: string
+      maxLength: 32
+    tags:
+      type: array
+      items:
+        type: string
+    status:
+      $ref: "#/WorkStatus"
+    accessForm:
+      $ref: "#/AccessForm"
+    grayRatio:
+      type: integer
+      minimum: 0
+      maximum: 100
+    sortWeight:
+      type: integer
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+AdminWorkPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/AdminWork"
+
+AdminWorkPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminWorkPageData"
+
+AdminWorkResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminWork"

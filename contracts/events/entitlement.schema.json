@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kjx.local/contracts/events/entitlement.schema.json",
+  "title": "KjxEntitlementChangedPayload",
+  "description": "权益/解锁投影事件 payload。事实源仍是 MySQL entitlement；本事件供通知、统计与对账，不得回读为鉴权依据。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "action",
+    "source",
+    "memberId",
+    "deptId",
+    "workCode",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["GRANTED", "REVOKED"]
+    },
+    "source": {
+      "type": "string",
+      "enum": ["user", "official_add", "official_remove", "fix"]
+    },
+    "accountId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "memberId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "deptId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "写入时从 kjx_member.dept_id 复制的快照，之后不随部门变更改写。"
+    },
+    "workId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workCode": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "workVersion": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "unlockRecordId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "entitlementId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "beforeUnlockedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "afterUnlockedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "beforeRemainCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "afterRemainCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

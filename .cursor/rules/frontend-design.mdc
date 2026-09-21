@@ -1,0 +1,21 @@
+---
+description: Frontend visual design, licensing, interaction, and verification rules
+globs: apps/{web,admin}/**/*.{ts,tsx,vue,css}
+alwaysApply: false
+---
+
+# Frontend Design Rules
+
+- Use `.cursor/skills/frontend-slides/SKILL.md` only for its MIT-licensed visual discovery and anti-template principles: show three visual directions, commit to distinctive typography and a small palette, then expand the selected system.
+- Do not apply Frontend Slides' fixed 1920×1080 stage, slide navigation, or presentation-only layout rules to responsive application pages.
+- Do not use, quote, derive from, or install `motion-web`; this commercial project has no commercial license for it.
+- `apps/web` public/entry pages may be expressive; authenticated task pages use a restrained product UI with clear hierarchy and predictable navigation.
+- `apps/admin` is a data-dense RuoYi/Element Plus application. Preserve familiar tables, forms, filters, permissions, and keyboard behavior; never turn it into a marketing or scroll-choreography page.
+- Write real Chinese copy before layout. Do not invent customers, metrics, testimonials, awards, or business claims.
+- Every interactive component defines default, hover, focus-visible, active, disabled, loading, error, empty, and success states where applicable.
+- Use semantic HTML, visible focus, touch targets at least 44px, and no hover-only action.
+- Verify at 320, 375, 414, 768, and 1440 widths. No horizontal overflow or two-line primary buttons.
+- Honor `prefers-reduced-motion`; content and navigation must remain complete with motion disabled.
+- Prefer CSS transitions for state changes. Add a motion library only when a named interaction cannot be implemented accessibly with CSS.
+- Before implementation, record the page family, information hierarchy, primary action, component inventory, and mobile adaptation.
+- Before handoff, run lint, typecheck, tests, build, and browser checks for desktop, mobile, keyboard, empty/error/loading, and reduced-motion states.

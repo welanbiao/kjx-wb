@@ -1,0 +1,783 @@
+MemberStatus:
+  type: string
+  description: 会员有效状态。VALID 判断为 startAt <= now <= expireAt。
+  enum:
+    - NOT_STARTED
+    - VALID
+    - EXPIRED
+
+BindingStatus:
+  type: string
+  description: C 端绑定状态机。
+  enum:
+    - NONE
+    - PENDING_REVIEW
+    - MATCHED
+    - REJECTED
+    - UNBINDING
+
+MemberSnapshot:
+  type: object
+  additionalProperties: false
+  required:
+    - memberCode
+    - expireAt
+    - availableCount
+    - unlockedCount
+    - remainCount
+    - status
+  properties:
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    douyinId:
+      type: string
+      nullable: true
+    expireAt:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    startAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    availableCount:
+      type: integer
+      minimum: 0
+      description: floor(subscribedDays / 30)。禁止用 subscribedMonths 推导。
+    unlockedCount:
+      type: integer
+      minimum: 0
+    remainCount:
+      type: integer
+      minimum: 0
+    status:
+      $ref: "#/MemberStatus"
+    subscribedMonths:
+      type: integer
+      minimum: 0
+      description: 仅用于绑定三要素展示，不参与额度。
+    subscribedDays:
+      type: integer
+      minimum: 0
+      description: 仅用于额度计算。
+
+SubmitBindingRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - douyinId
+    - memberCode
+    - claimMonths
+  properties:
+    hostCode:
+      allOf:
+        - $ref: "../../schemas/common.yaml#/schemas/HostCode"
+      description: 三级取值带入；带入不到时才由前端展示下拉。
+    douyinId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: 抖音号。服务端会 trim、去 @、小写。
+      example: "zhangsan"
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    claimMonths:
+      type: integer
+      minimum: 1
+      maximum: 120
+      description: 用户声称的已订阅月数，只参与三要素精确匹配，不参与额度。
+      example: 15
+
+SubmitBindingData:
+  type: object
+  additionalProperties: false
+  required:
+    - status
+  properties:
+    status:
+      $ref: "#/BindingStatus"
+    member:
+      type: object
+      nullable: true
+      description: status=MATCHED 时返回；PENDING_REVIEW 时为 null。
+      allOf:
+        - $ref: "#/MemberSnapshot"
+
+SubmitBindingResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SubmitBindingData"
+
+BindingStatusData:
+  type: object
+  additionalProperties: false
+  required:
+    - status
+  properties:
+    status:
+      $ref: "#/BindingStatus"
+    submitAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    rejectReason:
+      type: string
+      nullable: true
+    member:
+      type: object
+      nullable: true
+      allOf:
+        - $ref: "#/MemberSnapshot"
+
+BindingStatusResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/BindingStatusData"
+
+HostOption:
+  type: object
+  additionalProperties: false
+  required:
+    - hostCode
+    - hostName
+  properties:
+    hostCode:
+      $ref: "../../schemas/common.yaml#/schemas/HostCode"
+    hostName:
+      type: string
+      example: "叩君芯"
+
+HostListResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/HostOption"
+
+MemberProfileResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          nullable: true
+          description: 未绑定时为 null。
+          allOf:
+            - $ref: "#/MemberSnapshot"
+
+SubmitAppealRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - appealType
+    - content
+  properties:
+    appealType:
+      type: string
+      enum:
+        - CHANGE_DOUYIN
+        - WRONG_BIND
+        - OTHER
+    content:
+      type: string
+      minLength: 1
+      maxLength: 1000
+    contact:
+      type: string
+      maxLength: 128
+    attachments:
+      type: array
+      maxItems: 6
+      items:
+        type: string
+        format: uri
+
+SubmitAppealData:
+  type: object
+  additionalProperties: false
+  required:
+    - appealId
+    - status
+  properties:
+    appealId:
+      type: integer
+      format: int64
+    status:
+      type: string
+      enum:
+        - PENDING
+
+SubmitAppealResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SubmitAppealData"
+
+CreateHostMemberRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - douyinId
+    - subscribedMonths
+    - subscribedDays
+    - expireAt
+  properties:
+    douyinId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      example: "zhangsan"
+    subscribedMonths:
+      type: integer
+      minimum: 1
+      maximum: 120
+      example: 15
+      description: |
+        运营从抖音后台直接抄录的已订阅月数，仅用于绑定三要素。
+        必填。服务端不得用天数推导本字段。
+    subscribedDays:
+      type: integer
+      minimum: 0
+      maximum: 36500
+      example: 435
+      description: |
+        累计已订阅天数，仅用于 availableCount = floor(subscribedDays / 30)。
+        必填。服务端不得用月数推导本字段。
+    expireAt:
+      allOf:
+        - $ref: "../../schemas/common.yaml#/schemas/DateTime"
+      description: 到期时刻，必填。只输入日期时服务端展开为当天 23:59:59.999+08:00。
+    remark:
+      type: string
+      maxLength: 255
+      default: ""
+
+CreateHostMemberData:
+  type: object
+  additionalProperties: false
+  required:
+    - memberId
+    - memberCode
+    - availableCount
+    - status
+  properties:
+    memberId:
+      type: integer
+      format: int64
+      example: 100
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    availableCount:
+      type: integer
+      minimum: 0
+      example: 14
+    status:
+      $ref: "#/MemberStatus"
+
+CreateHostMemberResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/CreateHostMemberData"
+
+UpdateHostMemberRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    subscribedMonths:
+      type: integer
+      minimum: 1
+      maximum: 120
+      description: 修改月份不得改变 availableCount。
+    subscribedDays:
+      type: integer
+      minimum: 0
+      maximum: 36500
+      description: 修改天数不得改变绑定 claim 匹配使用的 subscribedMonths。
+    expireAt:
+      allOf:
+        - $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    remark:
+      type: string
+      maxLength: 255
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+AdminMember:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - memberCode
+    - douyinId
+    - deptId
+    - subscribedMonths
+    - subscribedDays
+    - expireAt
+    - availableCount
+    - unlockedCount
+    - remainCount
+    - status
+    - bindState
+  properties:
+    id:
+      type: integer
+      format: int64
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    douyinId:
+      type: string
+    deptId:
+      type: integer
+      format: int64
+    hostCode:
+      $ref: "../../schemas/common.yaml#/schemas/HostCode"
+    subscribedMonths:
+      type: integer
+      minimum: 0
+    subscribedDays:
+      type: integer
+      minimum: 0
+    expireAt:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+    startAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    availableCount:
+      type: integer
+      minimum: 0
+    unlockedCount:
+      type: integer
+      minimum: 0
+    remainCount:
+      type: integer
+      minimum: 0
+    status:
+      $ref: "#/MemberStatus"
+    bindState:
+      type: integer
+      enum:
+        - 0
+        - 1
+    boundAccountId:
+      type: integer
+      format: int64
+      nullable: true
+    boundAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    remark:
+      type: string
+      nullable: true
+    createTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+
+AdminMemberPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/AdminMember"
+
+AdminMemberPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminMemberPageData"
+
+AdminMemberResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminMember"
+
+MemberCodeData:
+  type: object
+  additionalProperties: false
+  required:
+    - memberCode
+  properties:
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+
+MemberCodeResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/MemberCodeData"
+
+AdminBinding:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - deptId
+    - accountId
+    - memberId
+    - status
+    - claimMonths
+    - createTime
+  properties:
+    id:
+      type: integer
+      format: int64
+    deptId:
+      type: integer
+      format: int64
+    accountId:
+      type: integer
+      format: int64
+    memberId:
+      type: integer
+      format: int64
+    memberCode:
+      $ref: "../../schemas/common.yaml#/schemas/MemberCode"
+    douyinIdInput:
+      type: string
+    claimMonths:
+      type: integer
+    status:
+      type: string
+      enum:
+        - PENDING_REVIEW
+        - MATCHED
+        - REJECTED
+        - UNBINDING
+    rejectReason:
+      type: string
+      nullable: true
+    matchedAt:
+      $ref: "../../schemas/common.yaml#/schemas/NullableDateTime"
+    createTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+
+AdminBindingPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/AdminBinding"
+
+AdminBindingPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminBindingPageData"
+
+ReviewReasonRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+ApproveBindingRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    remark:
+      type: string
+      maxLength: 255
+
+AdjustEntitlementRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - action
+    - workCode
+    - reason
+  properties:
+    action:
+      type: string
+      enum:
+        - ADD
+        - REMOVE
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+RecalcMemberRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+HandleAppealRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - result
+    - handleNote
+  properties:
+    result:
+      type: string
+      enum:
+        - APPROVED
+        - REJECTED
+    handleNote:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+AdminAppeal:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - accountId
+    - appealType
+    - content
+    - status
+    - createTime
+  properties:
+    id:
+      type: integer
+      format: int64
+    accountId:
+      type: integer
+      format: int64
+    bindingId:
+      type: integer
+      format: int64
+      nullable: true
+    appealType:
+      type: string
+      enum:
+        - CHANGE_DOUYIN
+        - WRONG_BIND
+        - OTHER
+    content:
+      type: string
+    contact:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum:
+        - PENDING
+        - APPROVED
+        - REJECTED
+    handleNote:
+      type: string
+      nullable: true
+    createTime:
+      $ref: "../../schemas/common.yaml#/schemas/DateTime"
+
+AdminAppealPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/AdminAppeal"
+
+AdminAppealPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminAppealPageData"
+
+HostSelfInfo:
+  type: object
+  additionalProperties: false
+  required:
+    - deptId
+    - hostCode
+    - hostName
+  properties:
+    deptId:
+      type: integer
+      format: int64
+    hostCode:
+      $ref: "../../schemas/common.yaml#/schemas/HostCode"
+    hostName:
+      type: string
+    dyAccount:
+      type: string
+      nullable: true
+    logoUrl:
+      type: string
+      nullable: true
+    contact:
+      type: string
+      nullable: true
+
+HostSelfInfoResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/HostSelfInfo"
+
+AdminHost:
+  type: object
+  additionalProperties: false
+  required:
+    - deptId
+    - hostCode
+    - hostName
+  properties:
+    deptId:
+      type: integer
+      format: int64
+    hostCode:
+      $ref: "../../schemas/common.yaml#/schemas/HostCode"
+    hostName:
+      type: string
+    dyAccount:
+      type: string
+      nullable: true
+    logoUrl:
+      type: string
+      nullable: true
+    contact:
+      type: string
+      nullable: true
+    remark:
+      type: string
+      nullable: true
+
+CreateHostRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - hostCode
+    - hostName
+    - reason
+  properties:
+    hostCode:
+      $ref: "../../schemas/common.yaml#/schemas/HostCode"
+    hostName:
+      type: string
+      minLength: 1
+      maxLength: 64
+    parentDeptId:
+      type: integer
+      format: int64
+    adminUserId:
+      type: integer
+      format: int64
+      description: 关联的后台账号 sys_user.id。
+    dyAccount:
+      type: string
+      maxLength: 128
+    logoUrl:
+      type: string
+      maxLength: 512
+    contact:
+      type: string
+      maxLength: 255
+    remark:
+      type: string
+      maxLength: 255
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+UpdateHostRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    hostName:
+      type: string
+      maxLength: 64
+    dyAccount:
+      type: string
+      maxLength: 128
+    logoUrl:
+      type: string
+      maxLength: 512
+    contact:
+      type: string
+      maxLength: 255
+    remark:
+      type: string
+      maxLength: 255
+    reason:
+      $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+
+AdminHostPageData:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/PageResult"
+    - type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/AdminHost"
+
+AdminHostPageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminHostPageData"
+
+AdminHostResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/AdminHost"

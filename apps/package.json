@@ -1,0 +1,18 @@
+{
+  "name": "kjx-apps",
+  "private": true,
+  "workspaces": [
+    "web",
+    "admin"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "static-check": "node scripts/static-check.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

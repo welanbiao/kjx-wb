@@ -1,0 +1,146 @@
+listWorks:
+  get:
+    tags:
+      - App Work
+    operationId: listWorks
+    summary: 作品列表
+    description: |
+      公开列表仅含 PUBLISHED/GRAY，并经同一 WorkVisibilityService 过滤。
+      unlocked=true 时包含当前账号已解锁但已下架的作品。
+    security:
+      - AppBearer: []
+    parameters:
+      - in: query
+        name: workType
+        schema:
+          $ref: "../schemas/work.yaml#/WorkType"
+      - in: query
+        name: unlocked
+        schema:
+          type: boolean
+        description: true 仅返回已解锁；false 仅未解锁；缺省为全部可见作品。
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页作品
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/WorkPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+getWork:
+  get:
+    tags:
+      - App Work
+    operationId: getWork
+    summary: 作品详情
+    description: 可见性与列表、解锁使用同一规则。已有 entitlement 时下架作品仍可访问。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/WorkCodePath"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 作品详情
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/WorkDetailResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+unlockWork:
+  post:
+    tags:
+      - App Work
+    operationId: unlockWork
+    summary: 解锁作品
+    description: |
+      Path 参数必须是 workCode。
+      幂等 scene=unlock、ref_id=work_id。
+      先检查已有 entitlement：命中则 HTTP 200 / code 1010，不再检查会员 VALID。
+      新解锁才检查 MATCHED + VALID + quota + published。
+      X-Idempotency-Key 必须走请求头，禁止放入 body。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/WorkCodePath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 新解锁成功（code=0）或已解锁（code=1010）
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/UnlockResponse"
+            examples:
+              fresh:
+                summary: 新解锁
+                value:
+                  code: 0
+                  msg: ""
+                  requestId: 01J8XQK7R3M2N5P6Q8S9T0V1W2
+                  data:
+                    workCode: breakup-editor
+                    unlockedCount: 3
+                    remainCount: 12
+                    entryUrl: /runtime/breakup-editor
+                    alreadyUnlocked: false
+              already:
+                summary: 已有权益
+                value:
+                  code: 1010
+                  msg: 已解锁，正在进入
+                  requestId: 01J8XQK7R3M2N5P6Q8S9T0V1W2
+                  data:
+                    workCode: breakup-editor
+                    unlockedCount: 3
+                    remainCount: 12
+                    entryUrl: /runtime/breakup-editor
+                    alreadyUnlocked: true
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+    x-idempotency:
+      scene: unlock
+      refId: work_id
+
+listEntitlements:
+  get:
+    tags:
+      - App Work
+    operationId: listEntitlements
+    summary: 我的解锁
+    description: 包含已下架作品，标注 workStatus。过期会员只要持有 entitlement 即可进入。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 已解锁作品
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/EntitlementListResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"

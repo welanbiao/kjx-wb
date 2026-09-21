@@ -1,0 +1,731 @@
+adminMemberPage:
+  get:
+    tags:
+      - Admin Member
+    operationId: pageAdminMembers
+    summary: 运营会员分页
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: deptId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: douyinId
+        schema:
+          type: string
+      - in: query
+        name: memberCode
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          $ref: "../schemas/member.yaml#/MemberStatus"
+      - in: query
+        name: bindState
+        schema:
+          type: integer
+          enum:
+            - 0
+            - 1
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页会员
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+createAdminMember:
+  post:
+    tags:
+      - Admin Member
+    operationId: createAdminMember
+    summary: 运营录入会员
+    description: subscribedMonths、subscribedDays、expireAt 三者均必填，互不换算。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "../schemas/member.yaml#/CreateHostMemberRequest"
+              - type: object
+                required:
+                  - deptId
+                  - reason
+                properties:
+                  deptId:
+                    type: integer
+                    format: int64
+                    description: 目标主播部门。
+                  reason:
+                    $ref: "../../schemas/common.yaml#/schemas/AuditReason"
+    responses:
+      "200":
+        description: 已创建
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/CreateHostMemberResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+getAdminMember:
+  get:
+    tags:
+      - Admin Member
+    operationId: getAdminMember
+    summary: 会员详情
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 会员详情
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+updateAdminMember:
+  put:
+    tags:
+      - Admin Member
+    operationId: updateAdminMember
+    summary: 修改会员
+    description: 修改关键字段必须带 reason 并写 AUDIT。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/UpdateHostMemberRequest"
+    responses:
+      "200":
+        description: 已更新
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+adjustEntitlement:
+  post:
+    tags:
+      - Admin Member
+    operationId: adjustMemberEntitlement
+    summary: 人工增删权益
+    description: 同事务增删 entitlement、重算、写 unlock_record(source=official_*)、AUDIT 与 Outbox。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/AdjustEntitlementRequest"
+    responses:
+      "200":
+        description: 已调整
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+recalcMember:
+  post:
+    tags:
+      - Admin Member
+    operationId: recalcMember
+    summary: 手动触发派生字段重算
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/RecalcMemberRequest"
+    responses:
+      "200":
+        description: 已重算
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminMemberResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+adminBindingPage:
+  get:
+    tags:
+      - Admin Binding
+    operationId: pageAdminBindings
+    summary: 绑定审核列表
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+            - PENDING_REVIEW
+            - MATCHED
+            - REJECTED
+            - UNBINDING
+      - in: query
+        name: deptId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: memberCode
+        schema:
+          type: string
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页绑定
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminBindingPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+approveBinding:
+  post:
+    tags:
+      - Admin Binding
+    operationId: approveBinding
+    summary: 审核通过绑定
+    description: 同一事务更新 binding/member/account、写 AUDIT 与通知 Outbox。不得在事务内直接发短信。
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/ApproveBindingRequest"
+    responses:
+      "200":
+        description: 已通过
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+rejectBinding:
+  post:
+    tags:
+      - Admin Binding
+    operationId: rejectBinding
+    summary: 审核驳回
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/ReviewReasonRequest"
+    responses:
+      "200":
+        description: 已驳回
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+forceUnbind:
+  post:
+    tags:
+      - Admin Binding
+    operationId: forceUnbind
+    summary: 强制解绑
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/ReviewReasonRequest"
+    responses:
+      "200":
+        description: 已解绑
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+adminAppealPage:
+  get:
+    tags:
+      - Admin Appeal
+    operationId: pageAdminAppeals
+    summary: 申诉列表
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页申诉
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminAppealPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+handleAppeal:
+  post:
+    tags:
+      - Admin Appeal
+    operationId: handleAppeal
+    summary: 处理申诉
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/HandleAppealRequest"
+    responses:
+      "200":
+        description: 已处理
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/OkEmptyResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+unlockRecordPage:
+  get:
+    tags:
+      - Admin Unlock Record
+    operationId: pageUnlockRecords
+    summary: 解锁记录查询
+    description: 不逻辑删除。HOST 仅能看到本部门记录。
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: deptId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: memberId
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: workCode
+        schema:
+          $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+      - in: query
+        name: result
+        schema:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILED
+      - in: query
+        name: source
+        schema:
+          $ref: "../schemas/work.yaml#/UnlockSource"
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页解锁记录
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/UnlockRecordPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+adminWorkPage:
+  get:
+    tags:
+      - Admin Work
+    operationId: pageAdminWorks
+    summary: 作品分页
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: workType
+        schema:
+          $ref: "../schemas/work.yaml#/WorkType"
+      - in: query
+        name: status
+        schema:
+          $ref: "../schemas/work.yaml#/WorkStatus"
+      - in: query
+        name: keyword
+        schema:
+          type: string
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页作品
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/AdminWorkPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+createAdminWork:
+  post:
+    tags:
+      - Admin Work
+    operationId: createAdminWork
+    summary: 新建作品
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/work.yaml#/CreateWorkRequest"
+    responses:
+      "200":
+        description: 已创建
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/AdminWorkResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+getAdminWork:
+  get:
+    tags:
+      - Admin Work
+    operationId: getAdminWork
+    summary: 作品管理详情
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 作品详情
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/AdminWorkResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+updateAdminWork:
+  put:
+    tags:
+      - Admin Work
+    operationId: updateAdminWork
+    summary: 修改作品
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/work.yaml#/UpdateWorkRequest"
+    responses:
+      "200":
+        description: 已更新
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/work.yaml#/AdminWorkResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+adminHostPage:
+  get:
+    tags:
+      - Admin Host
+    operationId: pageAdminHosts
+    summary: 主播分页
+    security:
+      - AdminBearer: []
+    parameters:
+      - in: query
+        name: hostCode
+        schema:
+          type: string
+      - $ref: "../../schemas/common.yaml#/parameters/PageNoQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/PageSizeQuery"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 分页主播
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminHostPageResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+
+createAdminHost:
+  post:
+    tags:
+      - Admin Host
+    operationId: createAdminHost
+    summary: 新增主播并关联后台账号
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/CreateHostRequest"
+    responses:
+      "200":
+        description: 已创建
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminHostResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+
+getAdminHost:
+  get:
+    tags:
+      - Admin Host
+    operationId: getAdminHost
+    summary: 主播详情
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 主播详情
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminHostResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"
+
+updateAdminHost:
+  put:
+    tags:
+      - Admin Host
+    operationId: updateAdminHost
+    summary: 修改主播扩展信息
+    security:
+      - AdminBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdPath"
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/UpdateHostRequest"
+    responses:
+      "200":
+        description: 已更新
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/AdminHostResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "404":
+        $ref: "../../schemas/common.yaml#/responses/NotFound"

@@ -1,0 +1,140 @@
+getBinding:
+  get:
+    tags:
+      - App Member
+    operationId: getMemberBinding
+    summary: 查询当前账号绑定状态
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 绑定状态
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/BindingStatusResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+submitBinding:
+  post:
+    tags:
+      - App Member
+    operationId: submitMemberBinding
+    summary: 提交三要素绑定
+    description: |
+      幂等 scene=binding、ref_id=account_id。
+      未命中三要素统一返回 1001，不区分错项。
+      X-Idempotency-Key 必须走请求头。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/DeviceIdHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/ClientVersionHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/SubmitBindingRequest"
+          example:
+            hostCode: KJX
+            douyinId: zhangsan
+            memberCode: KJX-A3F9K2B7
+            claimMonths: 15
+    responses:
+      "200":
+        description: 直接通过或转人工审核
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/SubmitBindingResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403":
+        $ref: "../../schemas/common.yaml#/responses/Forbidden"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"
+      "429":
+        $ref: "../../schemas/common.yaml#/responses/TooManyRequests"
+    x-idempotency:
+      scene: binding
+      refId: account_id
+
+listHosts:
+  get:
+    tags:
+      - App Member
+    operationId: listMemberHosts
+    summary: 主播列表（三级取值兜底）
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 主播短码列表
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/HostListResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+getMemberProfile:
+  get:
+    tags:
+      - App Member
+    operationId: getMemberProfile
+    summary: 获取已绑定会员信息
+    description: 未绑定返回 data=null。前端不得自行计算会员状态或额度。
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 会员快照或 null
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/MemberProfileResponse"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+
+submitAppeal:
+  post:
+    tags:
+      - App Member
+    operationId: submitBindingAppeal
+    summary: 提交绑定申诉或解绑申请
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: "../../schemas/common.yaml#/parameters/IdempotencyKeyHeader"
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/member.yaml#/SubmitAppealRequest"
+    responses:
+      "200":
+        description: 已受理
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/member.yaml#/SubmitAppealResponse"
+      "400":
+        $ref: "../../schemas/common.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "409":
+        $ref: "../../schemas/common.yaml#/responses/Conflict"

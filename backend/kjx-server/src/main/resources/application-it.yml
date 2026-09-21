@@ -1,0 +1,21 @@
+# Testcontainers 集成测试覆盖此文件中的 host/port。禁止 H2。
+spring:
+  main:
+    banner-mode: off
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    clean-disabled: true
+    locations: classpath:db/migration
+  sql:
+    init:
+      mode: never
+
+mybatis-plus:
+  mapperPackage: com.koujunxin.server.infra.probe.mapper
+  configuration:
+    logImpl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+logging:
+  level:
+    com.koujunxin: INFO

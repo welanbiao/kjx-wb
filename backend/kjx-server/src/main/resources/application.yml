@@ -1,0 +1,124 @@
+server:
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 20
+
+spring:
+  application:
+    name: kjx-server
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  jackson:
+    time-zone: Asia/Shanghai
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  messages:
+    basename: i18n/messages
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:koujunxin}?useUnicode=true&characterEncoding=utf8mb4&connectionCollation=utf8mb4_0900_ai_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${DB_USER:kjx}
+    password: ${DB_PASSWORD:kjx}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      connection-init-sql: SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 10s
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    table: flyway_schema_history
+    clean-disabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    baseline-version: 0
+
+mybatis-plus:
+  mapperPackage: com.koujunxin.server.infra.probe.mapper
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    local-cache-scope: statement
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: delFlag
+      logic-delete-value: 2
+      logic-not-delete-value: 0
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  is-read-header: true
+  is-read-cookie: false
+  timeout: 86400
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: false
+
+redisson:
+  keyPrefix: kjx
+  threads: 4
+  nettyThreads: 8
+  singleServerConfig:
+    clientName: kjx-server
+    connectionMinimumIdleSize: 2
+    connectionPoolSize: 16
+    idleConnectionTimeout: 10000
+    timeout: 3000
+    subscriptionConnectionPoolSize: 8
+
+ruoyi:
+  name: kjx-server
+  version: 1.0.0
+  copyrightYear: 2026
+
+xss:
+  enabled: false
+  excludeUrls: []
+
+captcha:
+  enable: false
+
+kjx:
+  jdbc:
+    timezone: Asia/Shanghai
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    com.koujunxin: INFO
+    org.dromara: INFO

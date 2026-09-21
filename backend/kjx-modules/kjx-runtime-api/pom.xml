@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.koujunxin</groupId>
+    <artifactId>kjx-modules</artifactId>
+    <version>${revision}</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>kjx-runtime-api</artifactId>
+  <packaging>jar</packaging>
+  <name>kjx-runtime-api</name>
+  <description>Runtime/Tool 中立端口、DTO 与错误类型。不得依赖 kjx-runtime / kjx-tool 实现，不得包含 Mapper/Entity。</description>
+</project>

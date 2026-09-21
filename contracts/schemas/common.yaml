@@ -1,0 +1,355 @@
+# 通用 OpenAPI schemas / parameters / responses
+# 被 contracts/openapi/openapi.yaml 引用。时间与分页语义以 docs/13 §4.2 为准。
+
+schemas:
+  DateTime:
+    type: string
+    format: date-time
+    description: |
+      ISO-8601，时区固定 +08:00，建议毫秒精度。
+      服务端时钟、MySQL、容器统一 Asia/Shanghai。
+      expireAt 表示最后有效时刻；运营只输入日期时展开为当天 23:59:59.999+08:00。
+    example: "2027-08-09T23:59:59.999+08:00"
+    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?\+08:00$'
+
+  NullableDateTime:
+    type: string
+    format: date-time
+    nullable: true
+    description: 可空的 ISO-8601 +08:00 时间。
+    example: "2027-08-09T23:59:59.999+08:00"
+    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?\+08:00$'
+
+  RequestId:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: |
+      请求 ID。客户端可通过 X-Request-Id 传入；缺失时由服务端生成。
+      成功与错误响应均必须回传。
+    example: "01J8XQK7R3M2N5P6Q8S9T0V1W2"
+
+  ErrorName:
+    type: string
+    description: 业务错误名，必须与 contracts/errors.yaml 的 codes.*.name 一致。
+    enum:
+      - BINDING_MISMATCH
+      - BINDING_TAKEN
+      - ACCOUNT_ALREADY_BOUND
+      - BINDING_LOCKED
+      - MEMBER_NOT_STARTED
+      - MEMBER_EXPIRED
+      - UNLOCK_QUOTA_EXHAUSTED
+      - WORK_UNPUBLISHED
+      - BINDING_REQUIRED
+      - ALREADY_UNLOCKED
+      - VERIFY_CODE_INVALID
+      - RATE_LIMITED
+      - ACCOUNT_LOCKED
+      - ACCOUNT_CANCELLING
+      - IDEMPOTENCY_CONFLICT
+
+  ApiEnvelope:
+    type: object
+    required:
+      - code
+      - msg
+      - requestId
+    properties:
+      code:
+        type: integer
+        description: 0 表示业务成功；非 0 见 contracts/errors.yaml。
+        example: 0
+      data:
+        description: 成功时的业务负载；错误时可为 null 或缺省。具体类型由各接口 schema 指定。
+      msg:
+        type: string
+        description: 人类可读说明。错误时使用 errors.yaml 文案。
+        default: ""
+      requestId:
+        $ref: "#/schemas/RequestId"
+
+  ApiSuccess:
+    allOf:
+      - $ref: "#/schemas/ApiEnvelope"
+      - type: object
+        required:
+          - code
+        properties:
+          code:
+            type: integer
+            enum:
+              - 0
+
+  ApiError:
+    allOf:
+      - $ref: "#/schemas/ApiEnvelope"
+      - type: object
+        required:
+          - code
+          - msg
+        properties:
+          code:
+            type: integer
+            minimum: 1
+            description: 业务错误码。冻结码见 contracts/errors.yaml。
+          data:
+            description: 可选补充信息（如 MEMBER_NOT_STARTED 的生效时间），不得泄露探测面。
+
+  PageQuery:
+    type: object
+    properties:
+      pageNo:
+        type: integer
+        minimum: 1
+        default: 1
+        description: 页码，从 1 开始。
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        description: 每页条数。
+
+  PageResult:
+    type: object
+    required:
+      - list
+      - total
+    properties:
+      list:
+        type: array
+        items: {}
+        description: 当前页数据。
+      total:
+        type: integer
+        format: int64
+        minimum: 0
+        description: 符合条件的总条数。
+
+  EmptyObject:
+    type: object
+    additionalProperties: false
+
+  AuditReason:
+    type: string
+    minLength: 1
+    maxLength: 500
+    description: 关键修改必须填写的操作理由，写入 AUDIT。
+
+  Phone:
+    type: string
+    description: 中国大陆手机号。注册仅支持手机号。
+    pattern: '^1[3-9]\d{9}$'
+    example: "13800138000"
+
+  Password:
+    type: string
+    format: password
+    minLength: 8
+    maxLength: 32
+    writeOnly: true
+    description: 8~32 位，须同时包含字母和数字。
+
+  HostCode:
+    type: string
+    minLength: 2
+    maxLength: 32
+    description: 主播短码，用于绑定链接与会员编码前缀。
+    example: "KJX"
+
+  MemberCode:
+    type: string
+    description: 系统生成的会员编码，格式 {HOST_CODE}-{8位随机码}，排除 O/0/I/1/L。
+    pattern: '^[A-Z]{2,8}-[A-HJ-NP-Z2-9]{8}$'
+    example: "KJX-A3F9K2B7"
+
+  WorkCode:
+    type: string
+    minLength: 2
+    maxLength: 64
+    description: 作品业务主键。解锁 path 参数必须使用 workCode，禁止用数字 id。
+    pattern: '^[a-z0-9][a-z0-9-]{1,62}$'
+    example: "breakup-editor"
+
+  IdempotencyKey:
+    type: string
+    minLength: 8
+    maxLength: 64
+    description: |
+      幂等键，通过请求头 X-Idempotency-Key 传递，禁止放进 JSON body。
+      相同 scene/ref_id/key 且 request_hash 相同：返回首次结果。
+      相同 scene/ref_id/key 且 request_hash 不同：HTTP 409 / 1090 IDEMPOTENCY_CONFLICT。
+
+  DeviceId:
+    type: string
+    minLength: 8
+    maxLength: 64
+    description: 设备指纹。登录、绑定、解锁时应上报。
+
+  ClientVersion:
+    type: string
+    maxLength: 32
+    description: 前端版本号。
+
+parameters:
+  IdempotencyKeyHeader:
+    in: header
+    name: X-Idempotency-Key
+    required: true
+    description: 有外部副作用的写接口必填。不要写入 JSON body。
+    schema:
+      $ref: "#/schemas/IdempotencyKey"
+
+  IdempotencyKeyHeaderOptional:
+    in: header
+    name: X-Idempotency-Key
+    required: false
+    description: 建议携带。有副作用的 POST 在生产必须填写。
+    schema:
+      $ref: "#/schemas/IdempotencyKey"
+
+  DeviceIdHeader:
+    in: header
+    name: X-Device-Id
+    required: false
+    schema:
+      $ref: "#/schemas/DeviceId"
+
+  ClientVersionHeader:
+    in: header
+    name: X-Client-Version
+    required: false
+    schema:
+      $ref: "#/schemas/ClientVersion"
+
+  RequestIdHeader:
+    in: header
+    name: X-Request-Id
+    required: false
+    description: 可选。缺失时服务端生成并在响应中回传。
+    schema:
+      $ref: "#/schemas/RequestId"
+
+  AuthorizationHeader:
+    in: header
+    name: Authorization
+    required: true
+    description: Bearer {token}。C 端 loginType=app，后台 loginType=admin，互不通用。
+    schema:
+      type: string
+      pattern: '^Bearer .+$'
+
+  PageNoQuery:
+    in: query
+    name: pageNo
+    required: false
+    schema:
+      type: integer
+      minimum: 1
+      default: 1
+
+  PageSizeQuery:
+    in: query
+    name: pageSize
+    required: false
+    schema:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+
+  WorkCodePath:
+    in: path
+    name: workCode
+    required: true
+    description: 作品业务主键。解锁与详情必须使用 workCode。
+    schema:
+      $ref: "#/schemas/WorkCode"
+
+  IdPath:
+    in: path
+    name: id
+    required: true
+    schema:
+      type: integer
+      format: int64
+      minimum: 1
+
+headers:
+  RequestId:
+    description: 与响应体 requestId 相同。
+    schema:
+      $ref: "#/schemas/RequestId"
+    required: true
+
+responses:
+  BadRequest:
+    description: 参数错误或业务校验失败（如 1001、1011）。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  Unauthorized:
+    description: 未登录、令牌失效，或 app/admin token 串用。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  Forbidden:
+    description: 无权限或业务拒绝（如 1005–1009、1013、1014）。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  Conflict:
+    description: 状态冲突或幂等冲突（1002、1003、1090）。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  TooManyRequests:
+    description: 限流或绑定锁定（1004、1012）。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  NotFound:
+    description: 资源不存在或因数据权限不可见。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"
+
+  InternalError:
+    description: 服务端错误。
+    headers:
+      X-Request-Id:
+        $ref: "#/headers/RequestId"
+    content:
+      application/json:
+        schema:
+          $ref: "#/schemas/ApiError"

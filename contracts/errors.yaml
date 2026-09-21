@@ -1,0 +1,135 @@
+# 叩君芯 · 业务错误码唯一来源
+# 常量只允许在本文件定义一次。新增、改码、改 HTTP 状态或改文案必须先提交 ADR，
+# 再同步 docs/13、OpenAPI 与测试。禁止在 backend / apps 中另定义同名常量。
+#
+# 约定：
+# - HTTP 状态表达协议结果；body.code 表达业务结果。
+# - 成功：HTTP 2xx 且 code = 0。例外：ALREADY_UNLOCKED 为 HTTP 200 且 code = 1010。
+# - 三要素绑定失败统一返回 1001，不区分是哪一项错。
+
+version: "1.0"
+source: docs/13-统一架构DDL与接口契约基线.md
+frozenAt: "2026-09-21"
+
+codes:
+  BINDING_MISMATCH:
+    code: 1001
+    httpStatus: 400
+    name: BINDING_MISMATCH
+    message: 信息不匹配，请核对后重试
+    retryable: false
+    description: 绑定三要素未命中。前端展示本统一文案，服务端不得回传具体错项。
+
+  BINDING_TAKEN:
+    code: 1002
+    httpStatus: 409
+    name: BINDING_TAKEN
+    message: 该会员信息已被使用，如有疑问请联系客服
+    retryable: false
+    description: 会员已被其他账号绑定。可引导申诉入口。
+
+  ACCOUNT_ALREADY_BOUND:
+    code: 1003
+    httpStatus: 409
+    name: ACCOUNT_ALREADY_BOUND
+    message: 每个账号只能绑定一个会员
+    retryable: false
+    description: 当前账号 bind_status 已为 MATCHED。
+
+  BINDING_LOCKED:
+    code: 1004
+    httpStatus: 429
+    name: BINDING_LOCKED
+    message: 尝试次数过多，请 30 分钟后再试
+    retryable: true
+    description: 绑定失败超过阈值，bind_locked_until 未到期。
+
+  MEMBER_NOT_STARTED:
+    code: 1005
+    httpStatus: 403
+    name: MEMBER_NOT_STARTED
+    message: 会员尚未生效，生效时间 {time}
+    retryable: false
+    description: 仅新解锁校验。已有 entitlement 时不得返回本码。
+
+  MEMBER_EXPIRED:
+    code: 1006
+    httpStatus: 403
+    name: MEMBER_EXPIRED
+    message: 会员已过期，请续费
+    retryable: false
+    description: 仅新解锁校验。已有 entitlement 时不得返回本码。
+
+  UNLOCK_QUOTA_EXHAUSTED:
+    code: 1007
+    httpStatus: 403
+    name: UNLOCK_QUOTA_EXHAUSTED
+    message: 可解锁数量已用完
+    retryable: false
+    description: 新解锁 CAS 未命中且会员仍为 VALID。
+
+  WORK_UNPUBLISHED:
+    code: 1008
+    httpStatus: 403
+    name: WORK_UNPUBLISHED
+    message: 作品已下架
+    retryable: false
+    description: 新解锁时作品不可见。已有 entitlement 仍可访问详情/运行时。
+
+  BINDING_REQUIRED:
+    code: 1009
+    httpStatus: 403
+    name: BINDING_REQUIRED
+    message: 请先完成会员绑定
+    retryable: false
+    description: 新解锁要求 binding.status = MATCHED。
+
+  ALREADY_UNLOCKED:
+    code: 1010
+    httpStatus: 200
+    name: ALREADY_UNLOCKED
+    message: 已解锁，正在进入
+    retryable: false
+    description: |
+      已有 entitlement，或同 scene/ref/key 且 request_hash 一致的幂等重放。
+      先查 entitlement，命中则返回本码，不再检查会员 VALID。
+
+  VERIFY_CODE_INVALID:
+    code: 1011
+    httpStatus: 400
+    name: VERIFY_CODE_INVALID
+    message: 验证码错误或已过期
+    retryable: false
+    description: 短信验证码校验失败或已消费。
+
+  RATE_LIMITED:
+    code: 1012
+    httpStatus: 429
+    name: RATE_LIMITED
+    message: 发送过于频繁，请稍后再试
+    retryable: true
+    description: 验证码发送或其它接口频控。
+
+  ACCOUNT_LOCKED:
+    code: 1013
+    httpStatus: 403
+    name: ACCOUNT_LOCKED
+    message: 账号已锁定，请联系客服
+    retryable: false
+    description: 登录失败锁定或运营锁定。
+
+  ACCOUNT_CANCELLING:
+    code: 1014
+    httpStatus: 403
+    name: ACCOUNT_CANCELLING
+    message: 账号注销中，暂时无法操作
+    retryable: false
+    description: 注销冷静期内禁止绑定、解锁等写操作。
+
+  IDEMPOTENCY_CONFLICT:
+    code: 1090
+    httpStatus: 409
+    name: IDEMPOTENCY_CONFLICT
+    message: 重复请求与首次参数不一致
+    retryable: false
+    description: 相同 scene/ref_id/idempotency_key 但 request_hash 不同。

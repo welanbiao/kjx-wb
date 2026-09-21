@@ -1,0 +1,105 @@
+# Local secrets — never commit
+.env
+.env.*
+!.env.example
+!.env*.example
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+*.key
+!*.key.example
+id_rsa
+id_rsa.pub
+credentials.json
+**/secrets/
+**/.secrets/
+**/application-local.yml
+**/application-local.yaml
+**/application-secret.yml
+**/application-secret.yaml
+
+# Java / Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.flattened-pom.xml
+hs_err_pid*
+replay_pid*
+.apt_generated/
+.classpath
+.project
+.settings/
+.factorypath
+*.iml
+
+# Node / frontend
+node_modules/
+.pnpm-store/
+.npm/
+.next/
+.nuxt/
+.turbo/
+.cache/
+dist/
+out/
+build/
+coverage/
+*.tsbuildinfo
+.eslintcache
+.vite/
+.output/
+
+# Python (contract scripts / local tools)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Docker / local data
+deploy/compose/data/
+deploy/data/
+**/data/mysql/
+**/data/redis/
+*.log
+logs/
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test / scratch
+*.orig
+*.bak
+tmp/
+temp/
+.playwright-mcp/
+test-results/
+playwright-report/
+blob-report/
+
+# Generated reports
+*.lcov
+bandit-report.*
+gitleaks-report.*
+
+# Binary office documents are not source artifacts
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx

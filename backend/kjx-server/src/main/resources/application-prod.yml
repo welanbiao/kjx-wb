@@ -12,7 +12,28 @@ spring:
   flyway:
     baseline-on-migrate: false
 
+kjx:
+  captcha:
+    enabled: true
+  sms:
+    mode: ${KJX_SMS_MODE:live}
+    provider: ${KJX_SMS_PROVIDER}
+    config-id: ${KJX_SMS_CONFIG_ID:kjx}
+
+# SMS4J 凭据只由环境注入；本仓库不写真实密钥。默认 configId=kjx。
+sms:
+  is-print: false
+  config-type: yaml
+  blends:
+    kjx:
+      supplier: ${KJX_SMS_PROVIDER:}
+      access-key-id: ${SMS_ACCESS_KEY_ID:}
+      access-key-secret: ${SMS_ACCESS_KEY_SECRET:}
+      signature: ${SMS_SIGN_NAME:}
+      template-id: ${SMS_TEMPLATE_CODE:}
+
 logging:
   level:
     com.koujunxin: WARN
     org.dromara: WARN
+    org.dromara.sms4j: WARN

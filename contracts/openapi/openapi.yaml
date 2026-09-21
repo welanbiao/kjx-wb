@@ -51,6 +51,8 @@ tags:
 security: []
 
 paths:
+  /app/auth/captcha:
+    $ref: "./paths/app-account.yaml#/getCaptcha"
   /app/auth/send-code:
     $ref: "./paths/app-account.yaml#/sendCode"
   /app/auth/register:

@@ -1,17 +1,15 @@
 package com.koujunxin.account.api.port;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.koujunxin.account.api.AccountException;
 
 /**
- * 未装配 SMS4J 时的占位。不发送、不记录手机号或验证码。
+ * 未装配真实短信适配时 fail-closed：不得返回“已发送”。
+ * test/dev 如需放行，必须显式提供 stub/live {@link SmsDispatchPort}。
  */
 public final class NoOpSmsDispatchPort implements SmsDispatchPort {
 
-    private static final Logger log = LoggerFactory.getLogger(NoOpSmsDispatchPort.class);
-
     @Override
     public void dispatch(String scene, String phone, String code) {
-        log.info("sms dispatch skipped (no SmsDispatchPort) scene={}", scene);
+        throw new AccountException(500, 500, "短信服务未配置");
     }
 }

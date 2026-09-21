@@ -220,6 +220,16 @@
         <artifactId>bcprov-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
       </dependency>
+      <dependency>
+        <groupId>cloud.tianai.captcha</groupId>
+        <artifactId>tianai-captcha</artifactId>
+        <version>${tianai-captcha.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.dromara.sms4j</groupId>
+        <artifactId>sms4j-spring-boot-starter</artifactId>
+        <version>${sms4j.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

@@ -11,6 +11,10 @@ spring:
     init:
       mode: never
 
+kjx:
+  sms:
+    mode: stub
+
 mybatis-plus:
   mapperPackage: com.koujunxin.server.infra.probe.mapper
   configuration:

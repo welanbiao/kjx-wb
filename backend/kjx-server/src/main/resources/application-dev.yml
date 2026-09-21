@@ -1,5 +1,14 @@
 # 本地开发。中间件见 deploy/compose/docker-compose.dev.yml
+kjx:
+  sms:
+    mode: ${KJX_SMS_MODE:stub}
+
+sms:
+  is-print: false
+  config-type: yaml
+
 logging:
   level:
     com.koujunxin: INFO
     org.dromara.common.mybatis: INFO
+    org.dromara.sms4j: WARN

@@ -19,3 +19,9 @@ spring:
     enabled: false
   datasource:
     url: ""
+
+kjx:
+  captcha:
+    enabled: false
+  sms:
+    mode: fail-closed

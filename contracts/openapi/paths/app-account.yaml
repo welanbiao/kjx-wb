@@ -1,3 +1,44 @@
+getCaptcha:
+  get:
+    tags:
+      - App Auth
+    operationId: getCaptcha
+    summary: 生成 C 端图形验证码挑战
+    description: |
+      tianai-captcha 挑战。响应信封 code=0。
+
+      BFF / live 对接：
+      1. GET 本接口拿到 `data.id` 与背景/滑块图（base64）。
+      2. 使用 tianai-captcha-web-sdk 渲染并收集轨迹，得到 ImageCaptchaTrack。
+      3. 将 `id` 作为 send-code 的 `captchaId`，将轨迹 JSON 作为 `captchaData` 原样回传。
+         `captchaData` 需能反序列化为 ImageCaptchaTrack（bgImageWidth/Height、
+         templateImageWidth/Height、startTime、stopTime、trackList[{x,y,t,type}]）。
+      服务端 matching 成功后一次性消费，不能复用同一 captchaId。
+    security: []
+    parameters:
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+            - SLIDER
+            - ROTATE
+            - CONCAT
+            - WORD_IMAGE_CLICK
+          default: SLIDER
+        description: 挑战类型。缺省 SLIDER。
+      - $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+    responses:
+      "200":
+        description: 挑战已生成
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/account.yaml#/CaptchaChallengeResponse"
+      "500":
+        $ref: "../../schemas/common.yaml#/responses/InternalError"
+
 sendCode:
   post:
     tags:

@@ -101,6 +101,22 @@ captcha:
 kjx:
   jdbc:
     timezone: Asia/Shanghai
+  captcha:
+    enabled: ${KJX_CAPTCHA_ENABLED:true}
+    prefix: ${KJX_CAPTCHA_PREFIX:captcha}
+    expire-ms: ${KJX_CAPTCHA_EXPIRE_MS:120000}
+    type: ${KJX_CAPTCHA_TYPE:SLIDER}
+  sms:
+    # fail-closed | stub | live。生产必须 live 且配置 KJX_SMS_PROVIDER / KJX_SMS_CONFIG_ID。
+    # 凭据只走 SMS4J 的 sms.blends.* 环境配置，本段不接收 access key。
+    mode: ${KJX_SMS_MODE:fail-closed}
+    provider: ${KJX_SMS_PROVIDER:}
+    config-id: ${KJX_SMS_CONFIG_ID:}
+
+# SMS4J 全局开关。具体 blends 只在 prod/dev 由环境注入，避免 test profile 静默连供应商。
+sms:
+  is-print: false
+  config-type: yaml
 
 management:
   endpoints:

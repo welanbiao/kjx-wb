@@ -25,7 +25,65 @@ SendCodeRequest:
     captchaData:
       type: object
       additionalProperties: true
-      description: 滑块/点选结果，透传 tianai-captcha matching 入参。
+      description: |
+        滑块/点选结果，反序列化为 tianai-captcha ImageCaptchaTrack 后 matching。
+        字段名保持冻结：本对象即 send-code 的 captchaData，不新增请求字段。
+        典型字段：bgImageWidth、bgImageHeight、templateImageWidth、templateImageHeight、
+        startTime、stopTime、trackList[{x,y,t,type}]。
+
+CaptchaChallenge:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - type
+    - backgroundImage
+    - backgroundImageWidth
+    - backgroundImageHeight
+  properties:
+    id:
+      type: string
+      minLength: 1
+      description: 挑战 ID。后续 send-code 的 captchaId。
+    type:
+      type: string
+      description: SLIDER / ROTATE / CONCAT / WORD_IMAGE_CLICK。
+    backgroundImage:
+      type: string
+      description: 背景图，通常为 data URI / base64。
+    templateImage:
+      type: string
+      nullable: true
+      description: 滑块/旋转模板图。
+    backgroundImageTag:
+      type: string
+      nullable: true
+    templateImageTag:
+      type: string
+      nullable: true
+    backgroundImageWidth:
+      type: integer
+    backgroundImageHeight:
+      type: integer
+    templateImageWidth:
+      type: integer
+      nullable: true
+    templateImageHeight:
+      type: integer
+      nullable: true
+    data:
+      description: 点选/旋转等扩展数据，透传给前端 SDK。
+      nullable: true
+
+CaptchaChallengeResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/CaptchaChallenge"
 
 SendCodeData:
   type: object

@@ -18,6 +18,8 @@ export type MockCaptchaRecord = {
   pieceWidth: number;
   pieceHeight: number;
   expireAt: number;
+  /** 松手校验已通过，供 send-code / 登录二次消费 */
+  passed?: boolean;
 };
 
 function svgDataUri(svg: string): string {

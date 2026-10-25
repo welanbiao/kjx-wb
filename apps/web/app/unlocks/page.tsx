@@ -45,31 +45,35 @@ export default function UnlocksPage() {
       <section className="kjx-section">
         <div className="kjx-wrap">
           <h1 className="kjx-title">{COPY.unlocks}</h1>
-          {member?.status === "EXPIRED" ? <p className="kjx-lead">{COPY.expiredHint}</p> : null}
+          {member?.status === "EXPIRED" ? <p className="kjx-lead kjx-world-lead">{COPY.expiredHint}</p> : null}
           {state.kind === "loading" ? <LoadingState /> : null}
           {state.kind === "error" ? <ErrorBanner error={state.error} onRetry={() => void reload()} /> : null}
           {state.kind === "ok" && list.length === 0 ? <EmptyState title={COPY.emptyUnlocks} /> : null}
-          <div className="kjx-work-grid">
+          <ol className="kjx-copy-list">
             {list.map((item) => (
-              <article key={item.workCode} className="kjx-card">
-                <p className="kjx-kicker">{workStatusLabel(item.workStatus)}</p>
-                <h2>{item.name}</h2>
-                <p className="kjx-hint">解锁于 {formatApiTime(item.unlockedAt)}</p>
-                <p className="kjx-hint">来源 {item.source === "official_add" ? "官方发放" : "自行解锁"}</p>
-                <div className="kjx-actions">
-                  {item.entryUrl ? (
-                    <Link className="kjx-btn" href={item.entryUrl}>
-                      {COPY.enter}
-                    </Link>
-                  ) : (
-                    <Link className="kjx-btn" href={`/works/${item.workCode}`}>
-                      查看详情
-                    </Link>
-                  )}
-                </div>
-              </article>
+              <li key={item.workCode}>
+                <article className="kjx-copy">
+                  <p className="kjx-copy-meta">
+                    <span>{workStatusLabel(item.workStatus)}</span>
+                  </p>
+                  <h2>{item.name}</h2>
+                  <p className="kjx-hint">解锁于 {formatApiTime(item.unlockedAt)}</p>
+                  <p className="kjx-hint">来源 {item.source === "official_add" ? "官方发放" : "自行解锁"}</p>
+                  <div className="kjx-actions">
+                    {item.entryUrl ? (
+                      <Link className="kjx-btn kjx-btn-ghost" href={item.entryUrl}>
+                        {COPY.enter}
+                      </Link>
+                    ) : (
+                      <Link className="kjx-btn kjx-btn-ghost" href={`/works/${item.workCode}`}>
+                        {COPY.enterCopy}
+                      </Link>
+                    )}
+                  </div>
+                </article>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
     </AppShell>

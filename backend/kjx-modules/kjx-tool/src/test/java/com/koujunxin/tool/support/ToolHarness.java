@@ -80,7 +80,7 @@ public final class ToolHarness {
         schemas.put("toast", JsonSupport.read(mapper,
                 "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}},\"required\":[\"text\"],\"additionalProperties\":false}"));
         schemas.put("chat.bubble", JsonSupport.read(mapper,
-                "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"},\"role\":{\"type\":\"string\"}},\"required\":[\"text\"],\"additionalProperties\":false}"));
+                "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"},\"role\":{\"type\":\"string\"},\"speaker\":{\"type\":\"string\",\"maxLength\":64}},\"required\":[\"text\"],\"additionalProperties\":false}"));
         schemas.put("wallet-balance", JsonSupport.read(mapper,
                 "{\"type\":\"object\",\"properties\":{\"amount\":{\"type\":\"number\"}},\"required\":[\"amount\"],\"additionalProperties\":false}"));
         schemas.put("moment-card", JsonSupport.read(mapper,

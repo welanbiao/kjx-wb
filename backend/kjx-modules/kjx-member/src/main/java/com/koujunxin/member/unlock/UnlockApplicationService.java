@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ import com.koujunxin.member.jdbc.UnlockRecordRepository;
 import com.koujunxin.member.normalize.ExpireTimes;
 import com.koujunxin.member.recalc.MemberRecalcService;
 import com.koujunxin.work.api.WorkCatalogQueryPort;
+import com.koujunxin.work.api.WorkPageDecoder;
 import com.koujunxin.work.api.WorkSnapshot;
 
 public class UnlockApplicationService {
@@ -47,6 +49,12 @@ public class UnlockApplicationService {
     private static final ZoneId SHANGHAI = ZoneId.of("Asia/Shanghai");
     public static final String SCENE_UNLOCK = "unlock";
     public static final String SCENE_ADJUST = "entitlement_adjust";
+    public static final String SCENE_PURCHASE = "page_purchase";
+    public static final String PAGE_PURCHASE_WORK = "breakup-editor";
+    private static final Set<String> PAGE_PURCHASE_WORKS = Set.of(
+            "breakup-editor",
+            "dream-phone");
+    static final long PAGE_PURCHASE_MEMBER_BASE = 1_000_000_000_000L;
 
     private final Clock clock;
     private final TransactionTemplate tx;
@@ -115,6 +123,27 @@ public class UnlockApplicationService {
             throw ex;
         } catch (MemberException ex) {
             recordFailureIfNeeded(accountId, work, ex);
+            throw ex;
+        }
+    }
+
+    public UnlockOutcome purchase(long accountId, String workCode, String idemKey, String requestId) {
+        String code = workCode == null ? "" : workCode.trim();
+        if (!PAGE_PURCHASE_WORKS.contains(code)) {
+            throw MemberFailures.badRequest("该作品不支持页面购买");
+        }
+        WorkSnapshot work = works.findByCode(code).orElseThrow(MemberFailures::notFound);
+        Map<String, Object> request = Map.of("workCode", work.workCode(), "accountId", accountId, "source", EntitlementRecord.PURCHASE);
+        try {
+            return runIdempotent(SCENE_PURCHASE, work.id(), accountId, idemKey, request, () ->
+                    doPurchase(accountId, work));
+        } catch (DuplicateKeyException ex) {
+            Optional<EntitlementRecord> existing = entitlements.findAccessible(accountId, work.id());
+            if (existing.isPresent()) {
+                MemberRecord member = members.findById(existing.get().memberId()).orElse(null);
+                log.info("purchase duplicate-key rolled back accountId={} workId={}", accountId, work.id());
+                return UnlockOutcome.already(purchaseView(work, member, true));
+            }
             throw ex;
         }
     }
@@ -205,6 +234,29 @@ public class UnlockApplicationService {
 
     public UnlockTransactionHook hook() {
         return hook;
+    }
+
+    private UnlockOutcome doPurchase(long accountId, WorkSnapshot work) {
+        Optional<EntitlementRecord> existing = entitlements.findAccessible(accountId, work.id());
+        if (existing.isPresent()) {
+            MemberRecord member = members.findById(existing.get().memberId()).orElse(null);
+            return UnlockOutcome.already(purchaseView(work, member, true));
+        }
+        AccountBindingView account = accounts.find(accountId).orElseThrow(MemberFailures::unauthorized);
+        if (account.cancelling()) {
+            throw MemberFailures.cancelling();
+        }
+        MemberRecord member = members.findBoundByAccount(accountId)
+                .or(() -> members.findByBoundAccountId(accountId))
+                .orElse(null);
+        long deptId = member == null ? 0L : member.deptId();
+        long memberId = member == null ? PAGE_PURCHASE_MEMBER_BASE + accountId : member.id();
+        LocalDateTime now = LocalDateTime.now(clock.withZone(SHANGHAI));
+        entitlements.insert(new EntitlementRecord(
+                0L, deptId, memberId, accountId, work.id(), work.currentVersion(),
+                EntitlementRecord.PURCHASE, null, now));
+        log.info("page purchase succeeded accountId={} workId={} source={}", accountId, work.id(), EntitlementRecord.PURCHASE);
+        return UnlockOutcome.created(purchaseView(work, member, false));
     }
 
     private UnlockOutcome doUnlock(long accountId, WorkSnapshot work, String idemKey, String requestId,
@@ -367,6 +419,19 @@ public class UnlockApplicationService {
         };
     }
 
+    private Map<String, Object> purchaseView(WorkSnapshot work, MemberRecord member, boolean already) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("workCode", work.workCode());
+        data.put("name", WorkPageDecoder.name(work.workCode(), work.name()));
+        data.put("unlocked", true);
+        data.put("unlockedCount", member == null ? 0 : member.unlockedCount());
+        data.put("remainCount", member == null ? 0 : member.remainCount());
+        data.put("entryUrl", "/runtime/" + work.workCode());
+        data.put("alreadyUnlocked", already);
+        data.put("source", EntitlementRecord.PURCHASE);
+        return data;
+    }
+
     private Map<String, Object> unlockView(WorkSnapshot work, MemberRecord member, boolean already) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("workCode", work.workCode());
@@ -380,7 +445,7 @@ public class UnlockApplicationService {
     private Map<String, Object> entitlementItem(EntitlementRecord row, WorkSnapshot work) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("workCode", work.workCode());
-        data.put("name", work.name());
+        data.put("name", WorkPageDecoder.name(work.workCode(), work.name()));
         data.put("coverUrl", work.coverUrl());
         data.put("workType", work.workType() == null ? null : work.workType().name());
         data.put("workStatus", work.status() == null ? null : work.status().name());

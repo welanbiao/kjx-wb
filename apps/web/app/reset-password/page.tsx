@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
-import { CaptchaField } from "@/components/product/CaptchaField";
+import { CaptchaGate } from "@/components/product/CaptchaGate";
 import { Field, TextInput } from "@/components/product/Field";
 import type { FrozenCaptcha } from "@/lib/captcha/types";
 import { clientApi } from "@/lib/client-api";
@@ -24,6 +24,10 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   async function sendCode() {
+    if (!phone.trim()) {
+      setError(new Error(COPY.phoneNeed));
+      return;
+    }
     if (!captcha) {
       setError(new Error(COPY.captchaNeed));
       return;
@@ -76,7 +80,7 @@ export default function ResetPasswordPage() {
               onChange={(event) => setPhone(event.target.value)}
             />
           </Field>
-          <CaptchaField value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
+          <CaptchaGate value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
           <Field id="reset-code" label={COPY.smsCode}>
             <TextInput
               id="reset-code"
@@ -91,7 +95,7 @@ export default function ResetPasswordPage() {
             variant="ghost"
             loading={sending}
             pendingLabel={COPY.sendingCode}
-            disabled={!captcha}
+            disabled={!phone.trim() || !captcha}
             onClick={() => void sendCode()}
           >
             {COPY.sendCode}

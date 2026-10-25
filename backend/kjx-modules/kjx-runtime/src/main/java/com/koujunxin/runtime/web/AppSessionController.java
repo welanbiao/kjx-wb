@@ -5,6 +5,7 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import com.koujunxin.runtime.api.dto.StateMutation;
 import com.koujunxin.runtime.session.RuntimeApplicationService;
 
 @RestController
+@ConditionalOnBean(RuntimeApplicationService.class)
 public class AppSessionController {
 
     private final RuntimeApplicationService runtime;
@@ -29,9 +31,12 @@ public class AppSessionController {
     }
 
     @PostMapping("/app/sessions")
-    public ApiBody<Map<String, Object>> create(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public ApiBody<Map<String, Object>> create(@RequestBody Map<String, Object> body, HttpServletRequest request) {
         String workCode = required(body, "workCode");
-        return ApiBody.ok(runtime.createSession(accounts.requireAccountId(), workCode), RuntimeWebSupport.requestId(request));
+        boolean trial = Boolean.parseBoolean(String.valueOf(body.getOrDefault("trial", false)));
+        return ApiBody.ok(
+                runtime.createSession(accounts.requireAccountId(), workCode, trial),
+                RuntimeWebSupport.requestId(request));
     }
 
     @GetMapping("/app/sessions")
@@ -82,9 +87,10 @@ public class AppSessionController {
         return ApiBody.ok(runtime.endSession(accounts.requireAccountId(), id, workCode), RuntimeWebSupport.requestId(request));
     }
 
-    private static String required(Map<String, String> body, String key) {
-        String value = body == null ? null : body.get(key);
-        if (value == null || value.isBlank()) {
+    private static String required(Map<String, Object> body, String key) {
+        Object raw = body == null ? null : body.get(key);
+        String value = raw == null ? null : String.valueOf(raw);
+        if (value == null || value.isBlank() || "null".equals(value)) {
             throw new IllegalArgumentException(key + " is required");
         }
         return value;

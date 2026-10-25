@@ -128,6 +128,13 @@ export type UnlockResult = {
   remainCount: number;
   entryUrl?: string;
   alreadyUnlocked: boolean;
+  source?: "user" | "official_add" | "purchase";
+};
+
+export type AiSettingsView = {
+  configured: boolean;
+  baseUrl: string;
+  model: string;
 };
 
 export type EntitlementItem = {
@@ -137,7 +144,7 @@ export type EntitlementItem = {
   workType?: WorkType;
   workStatus: WorkStatus;
   unlockedAt: string;
-  source: "user" | "official_add";
+  source: "user" | "official_add" | "purchase";
   entryUrl?: string;
 };
 

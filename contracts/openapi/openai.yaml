@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: 叩君芯 OpenAI 兼容代理
+  version: 1.0.0
+  description: |
+    M3 `/v1/**` 分片。权威入口 `openapi.yaml` 写明不收录本前缀，本文件独立维护。
+
+    客户端只传本轮新的 user 消息；服务端丢弃客户端 system，不把整段历史再 append。
+    BYOK 密钥只走请求头，响应与错误体不得回显密钥或 Prompt 母版。
+
+    无模型客户端时本接口不注册。
+
+tags:
+  - name: OpenAI Compatible
+    description: GET /v1/models 与 POST /v1/chat/completions。loginType=app。
+
+security:
+  - AppBearer: []
+
+paths:
+  /v1/models:
+    get:
+      tags:
+        - OpenAI Compatible
+      operationId: listModels
+      summary: 列出平台模型
+      description: 需要 C 端登录。Header 携带会话与作品，用于鉴权上下文。
+      parameters:
+        - $ref: "#/components/parameters/SessionIdHeader"
+        - $ref: "#/components/parameters/WorkIdHeader"
+        - $ref: "#/components/parameters/ChannelHeader"
+      responses:
+        "200":
+          description: 模型列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenAiModelList"
+        "401":
+          $ref: "#/components/responses/OpenAiError"
+        "400":
+          $ref: "#/components/responses/OpenAiError"
+
+  /v1/chat/completions:
+    post:
+      tags:
+        - OpenAI Compatible
+      operationId: createChatCompletion
+      summary: OpenAI 兼容对话
+      description: |
+        `stream=false` 返回 `application/json` chat.completion。
+        `stream=true` 返回 `text/event-stream`，完成、超时或客户端断开时取消 CancellationToken。
+
+        `X-KJX-Channel` 缺省 PLATFORM。BYOK 必须同时提供 Key、Base-Url、Model，缺任一项失败且不回显密钥。
+        PLATFORM 请求忽略 BYOK 头。
+      parameters:
+        - $ref: "#/components/parameters/SessionIdHeader"
+        - $ref: "#/components/parameters/WorkIdHeader"
+        - $ref: "#/components/parameters/ChannelHeader"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/ByokKeyHeader"
+        - $ref: "#/components/parameters/ByokBaseUrlHeader"
+        - $ref: "#/components/parameters/ByokModelHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenAiCompletionRequest"
+      responses:
+        "200":
+          description: 非流式完成，或 SSE 已建立
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenAiCompletionResponse"
+            text/event-stream:
+              schema:
+                type: string
+                description: `data:` JSON chunk，最后 `data: [DONE]`。
+        "400":
+          $ref: "#/components/responses/OpenAiError"
+        "401":
+          $ref: "#/components/responses/OpenAiError"
+        "404":
+          $ref: "#/components/responses/OpenAiError"
+        "499":
+          $ref: "#/components/responses/OpenAiError"
+        "502":
+          $ref: "#/components/responses/OpenAiError"
+        "504":
+          $ref: "#/components/responses/OpenAiError"
+
+components:
+  securitySchemes:
+    AppBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: C 端 loginType=app。`/v1` 不在 `/app` 拦截器内，由控制器自行 checkLogin。
+
+  parameters:
+    SessionIdHeader:
+      name: X-KJX-Session-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    WorkIdHeader:
+      name: X-KJX-Work-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+      description: 作品 workCode。
+    ChannelHeader:
+      name: X-KJX-Channel
+      in: header
+      required: false
+      schema:
+        type: string
+        enum:
+          - PLATFORM
+          - BYOK
+        default: PLATFORM
+    IdempotencyKeyHeader:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+    ByokKeyHeader:
+      name: X-KJX-BYOK-Key
+      in: header
+      required: false
+      schema:
+        type: string
+      description: BYOK 通道必填。不得写入日志或错误体。
+    ByokBaseUrlHeader:
+      name: X-KJX-BYOK-Base-Url
+      in: header
+      required: false
+      schema:
+        type: string
+      description: BYOK 通道必填。
+    ByokModelHeader:
+      name: X-KJX-BYOK-Model
+      in: header
+      required: false
+      schema:
+        type: string
+      description: BYOK 通道必填。
+
+  schemas:
+    OpenAiCompletionRequest:
+      type: object
+      additionalProperties: true
+      required:
+        - messages
+      properties:
+        model:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenAiMessage"
+        stream:
+          type: boolean
+          default: false
+        tools:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        max_tokens:
+          type: integer
+        response_format:
+          type: object
+          additionalProperties: true
+
+    OpenAiMessage:
+      type: object
+      additionalProperties: true
+      required:
+        - role
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+
+    OpenAiModelList:
+      type: object
+      additionalProperties: true
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    OpenAiCompletionResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          example: chat.completion
+        choices:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    OpenAiErrorBody:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+            - name
+            - code
+            - message
+          properties:
+            name:
+              type: string
+            code:
+              type: integer
+            message:
+              type: string
+              description: 不得包含 Prompt 母版或密钥原文。
+
+  responses:
+    OpenAiError:
+      description: |
+        `{error:{name,code,message}}`。
+        CREDENTIAL_INVALID 400；PROMPT_NOT_FOUND 404；AI_CANCELLED 499；
+        BYOK_FAILED / 1202 → 502；AI_UPSTREAM_TIMEOUT 504；其余用异常 code，超出 100–599 则 400。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OpenAiErrorBody"

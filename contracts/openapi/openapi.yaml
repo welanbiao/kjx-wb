@@ -47,6 +47,12 @@ tags:
     description: 作品管理。
   - name: Admin Host
     description: 主播管理（部门扩展）。
+  - name: Billing
+    description: C 端钱包余额与支付回调入账。
+  - name: Channel
+    description: BYOK 凭据引用。服务端只存 secretRef。
+  - name: App Runtime
+    description: C 端会话、存档、分段披露、沙箱宿主代理与工具调用。
 
 security: []
 
@@ -159,6 +165,28 @@ paths:
       $ref: "./paths/admin-ops.yaml#/getAdminHost/get"
     put:
       $ref: "./paths/admin-ops.yaml#/updateAdminHost/put"
+  /app/billing/wallet:
+    $ref: "./paths/billing.yaml#/getWallet"
+  /app/billing/payments/notify:
+    $ref: "./paths/billing.yaml#/acceptPayment"
+  /app/billing/byok-credentials:
+    $ref: "./paths/billing.yaml#/saveByokCredential"
+  /app/sessions:
+    $ref: "./paths/runtime.yaml#/sessions"
+  /app/sessions/{id}:
+    $ref: "./paths/runtime.yaml#/sessionById"
+  /app/sessions/{id}/state:
+    $ref: "./paths/runtime.yaml#/sessionState"
+  /app/sessions/{id}/stage:
+    $ref: "./paths/runtime.yaml#/sessionStage"
+  /app/sessions/{id}/sandbox:
+    $ref: "./paths/runtime.yaml#/sessionSandbox"
+  /app/saves:
+    $ref: "./paths/runtime.yaml#/saves"
+  /app/runtime/host:
+    $ref: "./paths/runtime.yaml#/runtimeHost"
+  /app/tools/invoke:
+    $ref: "./paths/runtime.yaml#/toolsInvoke"
 
 components:
   securitySchemes:

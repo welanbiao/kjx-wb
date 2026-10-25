@@ -29,10 +29,13 @@ import com.koujunxin.work.catalog.WorkType;
 public class JdbcWorkRepository implements WorkRepository {
 
     private static final String SELECT_COLUMNS = """
-            id, work_code, name, work_type, summary, cover_url, CAST(screenshots AS CHAR) AS screenshots,
+            id, work_code, CONVERT(name USING utf8mb4) AS name, work_type,
+            CONVERT(summary USING utf8mb4) AS summary, cover_url,
+            CAST(screenshots AS CHAR CHARACTER SET utf8mb4) AS screenshots,
             category, tags, status, current_version, content_version, access_form, prompt_mode,
-            allowed_channels, allow_byok_direct, CAST(apps AS CHAR) AS apps, CAST(tools AS CHAR) AS tools,
-            CAST(server_tools AS CHAR) AS server_tools, pricing_mode, gray_ratio, sort_weight, unlock_count,
+            allowed_channels, allow_byok_direct, CAST(apps AS CHAR CHARACTER SET utf8mb4) AS apps,
+            CAST(tools AS CHAR CHARACTER SET utf8mb4) AS tools,
+            CAST(server_tools AS CHAR CHARACTER SET utf8mb4) AS server_tools, pricing_mode, gray_ratio, sort_weight, unlock_count,
             publish_time, creator, create_time, updater, update_time, deleted
             """;
 

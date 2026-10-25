@@ -17,6 +17,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.koujunxin.runtime.api.MissingWorkRuntimePort;
 import com.koujunxin.runtime.api.RuntimeAiPort;
 import com.koujunxin.runtime.api.WorkRuntimePort;
+import com.koujunxin.runtime.api.port.AccountAiSettingsPort;
 import com.koujunxin.runtime.api.port.EntitlementAccessPort;
 import com.koujunxin.runtime.api.port.SessionAuthorizationPort;
 import com.koujunxin.runtime.api.port.SessionStateCommandPort;
@@ -24,6 +25,13 @@ import com.koujunxin.runtime.api.port.SessionStateQueryPort;
 import com.koujunxin.runtime.api.port.ToolExecutionPort;
 import com.koujunxin.runtime.ledger.SaveSigner;
 import com.koujunxin.runtime.sandbox.SandboxGuard;
+import com.koujunxin.runtime.breakup.BreakupAssetService;
+import com.koujunxin.runtime.breakup.BreakupCatalog;
+import com.koujunxin.runtime.breakup.BreakupRewriteService;
+import com.koujunxin.runtime.breakup.BreakupRuntimeService;
+import com.koujunxin.runtime.breakup.BreakupSessionFactory;
+import com.koujunxin.runtime.dreamphone.DreamPhoneRuntimeService;
+import com.koujunxin.runtime.dreamphone.DreamPhoneSessionFactory;
 import com.koujunxin.runtime.session.JdbcRuntimeStore;
 import com.koujunxin.runtime.session.RuntimeApplicationService;
 import com.koujunxin.runtime.session.RuntimeStore;
@@ -82,6 +90,69 @@ public class RuntimeAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(BreakupCatalog.class)
+    BreakupCatalog breakupCatalog() {
+        return new BreakupCatalog();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(BreakupSessionFactory.class)
+    BreakupSessionFactory breakupSessionFactory(BreakupCatalog catalog) {
+        return new BreakupSessionFactory(catalog);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(DreamPhoneSessionFactory.class)
+    DreamPhoneSessionFactory dreamPhoneSessionFactory() {
+        return new DreamPhoneSessionFactory();
+    }
+
+    @Bean
+    @ConditionalOnBean({SessionStateService.class, RuntimeStore.class, EntitlementAccessPort.class})
+    @ConditionalOnMissingBean(DreamPhoneRuntimeService.class)
+    DreamPhoneRuntimeService dreamPhoneRuntimeService(
+            DreamPhoneSessionFactory factory,
+            SessionStateService sessions,
+            RuntimeStore store,
+            EntitlementAccessPort entitlements,
+            org.springframework.beans.factory.ObjectProvider<ToolExecutionPort> tools,
+            org.springframework.beans.factory.ObjectProvider<RuntimeAiPort> ai,
+            org.springframework.beans.factory.ObjectProvider<AccountAiSettingsPort> settings) {
+        return new DreamPhoneRuntimeService(
+                factory,
+                sessions,
+                store,
+                entitlements,
+                tools.getIfAvailable(),
+                ai.getIfAvailable(),
+                settings.getIfAvailable());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(BreakupAssetService.class)
+    BreakupAssetService breakupAssetService(Environment environment) {
+        return new BreakupAssetService(environment.getProperty("kjx.runtime.save-hmac-secret", "local-dev-not-a-runtime-key"));
+    }
+
+    @Bean
+    @ConditionalOnBean({SessionStateService.class, RuntimeStore.class, EntitlementAccessPort.class})
+    @ConditionalOnMissingBean(BreakupRuntimeService.class)
+    BreakupRuntimeService breakupRuntimeService(
+            BreakupCatalog catalog,
+            BreakupSessionFactory factory,
+            BreakupAssetService assets,
+            SessionStateService sessions,
+            RuntimeStore store,
+            EntitlementAccessPort entitlements,
+            org.springframework.beans.factory.ObjectProvider<ToolExecutionPort> tools,
+            org.springframework.beans.factory.ObjectProvider<RuntimeAiPort> ai,
+            org.springframework.beans.factory.ObjectProvider<AccountAiSettingsPort> settings) {
+        BreakupRewriteService rewrites = new BreakupRewriteService(
+                catalog, tools.getIfAvailable(), ai::getIfAvailable, settings.getIfAvailable());
+        return new BreakupRuntimeService(catalog, factory, rewrites, assets, sessions, store, entitlements);
+    }
+
+    @Bean
     @ConditionalOnBean(RuntimeStore.class)
     @ConditionalOnMissingBean(SandboxGuard.class)
     SandboxGuard sandboxGuard(RuntimeStore store, Environment environment) {
@@ -108,12 +179,16 @@ public class RuntimeAutoConfiguration {
             SandboxGuard sandbox,
             org.springframework.beans.factory.ObjectProvider<ToolExecutionPort> tools,
             org.springframework.beans.factory.ObjectProvider<RuntimeAiPort> ai,
-            org.springframework.beans.factory.ObjectProvider<PlatformTransactionManager> txManager) {
+            org.springframework.beans.factory.ObjectProvider<PlatformTransactionManager> txManager,
+            org.springframework.beans.factory.ObjectProvider<BreakupSessionFactory> breakupSessions,
+            org.springframework.beans.factory.ObjectProvider<DreamPhoneSessionFactory> dreamSessions) {
         ToolExecutionPort toolPort = tools.getIfAvailable(() -> command ->
                 ToolResult.fail("TOOL_UNAVAILABLE", "ToolExecutionPort not wired"));
         PlatformTransactionManager manager = txManager.getIfAvailable();
         TransactionTemplate tx = manager == null ? null : new TransactionTemplate(manager);
         return new RuntimeApplicationService(
-                store, sessions, entitlements, works, signer, sandbox, toolPort, ai.getIfAvailable(), tx);
+                store, sessions, entitlements, works, signer, sandbox, toolPort, ai.getIfAvailable(), tx,
+                breakupSessions.getIfAvailable(),
+                dreamSessions.getIfAvailable());
     }
 }

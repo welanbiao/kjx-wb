@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.koujunxin.work.api.WorkDetailView;
+import com.koujunxin.work.api.WorkPageDecoder;
 import com.koujunxin.work.api.WorkPageView;
 import com.koujunxin.work.api.WorkSummaryView;
 import com.koujunxin.work.catalog.WorkRecord;
@@ -27,9 +28,9 @@ public final class WorkApiMapper {
         return new AdminWorkBody(
                 work.id(),
                 work.workCode(),
-                work.name(),
+                WorkPageDecoder.name(work.workCode(), work.name()),
                 work.workType().name(),
-                work.summary(),
+                WorkPageDecoder.summary(work.workCode(), work.summary()),
                 work.coverUrl(),
                 work.category(),
                 work.tags(),
@@ -46,9 +47,9 @@ public final class WorkApiMapper {
     public static WorkSummaryBody toSummary(WorkSummaryView view) {
         return new WorkSummaryBody(
                 view.workCode(),
-                view.name(),
+                WorkPageDecoder.name(view.workCode(), view.name()),
                 view.workType().name(),
-                view.summary(),
+                WorkPageDecoder.summary(view.workCode(), view.summary()),
                 view.coverUrl(),
                 view.category(),
                 view.tags(),
@@ -62,9 +63,9 @@ public final class WorkApiMapper {
     public static WorkDetailBody toDetail(WorkDetailView view) {
         return new WorkDetailBody(
                 view.workCode(),
-                view.name(),
+                WorkPageDecoder.name(view.workCode(), view.name()),
                 view.workType().name(),
-                view.summary(),
+                WorkPageDecoder.summary(view.workCode(), view.summary()),
                 view.coverUrl(),
                 view.category(),
                 view.tags(),

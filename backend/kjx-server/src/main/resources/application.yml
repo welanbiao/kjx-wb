@@ -27,7 +27,7 @@ spring:
     basename: i18n/messages
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:koujunxin}?useUnicode=true&characterEncoding=utf8mb4&connectionCollation=utf8mb4_0900_ai_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:koujunxin}?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_0900_ai_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
     username: ${DB_USER:kjx}
     password: ${DB_PASSWORD:kjx}
     hikari:
@@ -52,6 +52,9 @@ spring:
     baseline-on-migrate: false
     validate-on-migrate: true
     baseline-version: 0
+    ignore-migration-patterns:
+      - "*:ignored"
+      - "*:future"
 
 mybatis-plus:
   mapperPackage: com.koujunxin.server.infra.probe.mapper

@@ -7,33 +7,6 @@ server {
   server_name _;
   client_max_body_size 20m;
 
-  # ----- C 端 API：/app → kjx-server -----
-  location /app/ {
-    proxy_pass http://${BACKEND_UPSTREAM};
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Request-Id $request_id;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_buffering off;
-    proxy_cache off;
-    proxy_read_timeout 3600s;
-    proxy_send_timeout 3600s;
-  }
-
-  location = /app {
-    proxy_pass http://${BACKEND_UPSTREAM};
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Request-Id $request_id;
-  }
-
   # ----- 后台 API：必须写在 /admin 之前，避免被前缀误伤 -----
   location /admin-api/ {
     proxy_pass http://${BACKEND_UPSTREAM};
@@ -83,7 +56,7 @@ server {
     return 302 /admin/;
   }
 
-  # ----- 会员前台 -----
+  # ----- 会员前台。/app 留在 Next BFF，由它再转发到 kjx-server -----
   location / {
     proxy_pass http://${WEB_UPSTREAM};
     proxy_http_version 1.1;

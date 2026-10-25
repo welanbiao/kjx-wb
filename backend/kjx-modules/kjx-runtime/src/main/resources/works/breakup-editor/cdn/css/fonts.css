@@ -1,0 +1,43 @@
+/* 正文用系统黑体。案卷墙那行宋体用包里这一份思源宋体 SemiBold。 */
+@font-face {
+  font-family: "思源宋体";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "思源宋体";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Han Serif SC";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Han Serif SC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-sc-600-subset.woff2") format("woff2");
+}

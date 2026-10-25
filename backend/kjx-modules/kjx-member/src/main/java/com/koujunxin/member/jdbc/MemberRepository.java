@@ -99,6 +99,16 @@ public class MemberRepository {
                 this::map, accountId).stream().findFirst();
     }
 
+    public Optional<MemberRecord> findByBoundAccountId(long accountId) {
+        return jdbc.query(
+                select() + """
+                 WHERE deleted = b'0' AND bound_account_id = ?
+                 ORDER BY bind_state DESC, id DESC
+                 LIMIT 1
+                """,
+                this::map, accountId).stream().findFirst();
+    }
+
     public void applyRecalc(long id, MemberRecalcService.RecalcResult recalc, LocalDateTime startAt, String actor) {
         jdbc.update(
                 """

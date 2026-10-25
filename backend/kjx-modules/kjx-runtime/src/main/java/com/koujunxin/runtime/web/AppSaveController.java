@@ -5,6 +5,7 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import com.koujunxin.runtime.api.RuntimeAccountPort;
 import com.koujunxin.runtime.session.RuntimeApplicationService;
 
 @RestController
+@ConditionalOnBean(RuntimeApplicationService.class)
 public class AppSaveController {
 
     private final RuntimeApplicationService runtime;

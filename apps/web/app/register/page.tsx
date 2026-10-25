@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
-import { CaptchaField } from "@/components/product/CaptchaField";
+import { CaptchaGate } from "@/components/product/CaptchaGate";
+import { Checkbox } from "@/components/product/Checkbox";
 import { Field, TextInput } from "@/components/product/Field";
 import type { FrozenCaptcha } from "@/lib/captcha/types";
 import { clientApi } from "@/lib/client-api";
@@ -27,6 +27,10 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   async function sendCode() {
+    if (!phone.trim()) {
+      setError(new Error(COPY.phoneNeed));
+      return;
+    }
     if (!captcha) {
       setError(new Error(COPY.captchaNeed));
       return;
@@ -67,9 +71,6 @@ export default function RegisterPage() {
   return (
     <AppShell variant="task">
       <div className="kjx-auth">
-        <figure className="kjx-brand-art">
-          <Image src="/brand/koujunxin-logo.jpg" alt="叩君芯图标" width={256} height={256} />
-        </figure>
         <h1 className="kjx-title">{COPY.register}</h1>
         <form className="kjx-form kjx-card" onSubmit={onSubmit}>
           <Field id="reg-phone" label={COPY.phone} hint="仅支持中国大陆手机号">
@@ -97,7 +98,7 @@ export default function RegisterPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </Field>
-          <CaptchaField value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
+          <CaptchaGate value={captcha} onChange={setCaptcha} disabled={sending} refreshToken={captchaEpoch} />
           <Field id="reg-code" label={COPY.smsCode}>
             <TextInput
               id="reg-code"
@@ -115,14 +116,13 @@ export default function RegisterPage() {
             onClick={() => void sendCode()}
             loading={sending}
             pendingLabel={COPY.sendingCode}
-            disabled={!captcha || !phone}
+            disabled={!phone.trim() || !captcha}
           >
             {COPY.sendCode}
           </Button>
-          <label className="kjx-check">
-            <input type="checkbox" checked={agree} onChange={(event) => setAgree(event.target.checked)} />
+          <Checkbox id="reg-agree" checked={agree} onCheckedChange={setAgree}>
             {COPY.agreeTerms}
-          </label>
+          </Checkbox>
           {error ? <ErrorBanner error={error} /> : null}
           {success ? <SuccessBanner>{success}</SuccessBanner> : null}
           <div className="kjx-actions">

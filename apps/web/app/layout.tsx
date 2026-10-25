@@ -43,7 +43,7 @@ const notoSerif = Noto_Serif_SC({
 
 export const metadata: Metadata = {
   title: "叩君芯",
-  description: "叩君芯会员产品平台：注册、绑定、解锁自研作品。",
+  description: "叩君芯无限世界：登录、试玩、进入文游副本。",
 };
 
 export default function RootLayout({

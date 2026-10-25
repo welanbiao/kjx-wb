@@ -12,8 +12,8 @@
 6. Outbox 行 `PROCESSING` 租约使用 `next_retry_at`（到期即可被再次领取）。失败指数退避 + 抖动；超限 `DEAD`。
 7. 消费回执表 `kjx_outbox_consume_receipt`（非冻结，见 ADR-001）：PK `(event_id, channel)`，`lease_until` 回收过期 PROCESSING，DONE 永不重复，abandon 可释放 PROCESSING。
 8. `last_error` 只存脱敏截断摘要（≤500）。
-9. `aggregateType` 只能取信封 enum：`account` / `member` / `binding` / `entitlement` / `unlock` / `work` / `notification` / `analytics`。
-10. `eventType` 必须落在 `event-whitelist.json`。新增类型先改契约再写代码。
+9. `aggregateType` 只能取信封 enum：`account` / `member` / `binding` / `entitlement` / `unlock` / `work` / `notification` / `analytics` / `billing` / `payment`。
+10. `eventType` 必须落在 `event-whitelist.json`。新增类型先改契约再写代码。`billing` / `payment` 已入白名单（`billing.frozen`、`billing.settled`、`billing.released`、`payment.paid`）。
 
 ## payload 分发
 

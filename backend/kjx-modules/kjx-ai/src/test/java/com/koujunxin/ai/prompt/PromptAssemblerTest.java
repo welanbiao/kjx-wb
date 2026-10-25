@@ -59,6 +59,25 @@ class PromptAssemblerTest {
     }
 
     @Test
+    void breakupEditorUsesPersonaFragmentAndOmitsApiKey() {
+        PromptRecord work = work("规则保持稳定。", "1.0.0");
+        String state = """
+                {"prompt":{"persona":"outer: 话少。\\ninner: 不会说。\\norigin: 自己扛。\\nspeech: 极简。"},\
+                "persona":{"outer":"话少。","inner":"不会说。","origin":"自己扛。","speech":"极简。"},\
+                "bp":88,"lm":30,"lf":70,"side":"a","worldline":"rewritten","apiKey":"sk-never-leave",\
+                "coupleLabel":"\u6C5F\u96EA \u00D7 \u5F20\u65F8\u5955"}
+                """;
+        AssembledPrompt assembled = assembler.assemble(work, state, null, List.of(), null);
+        assertTrue(assembled.variableSuffix().contains("[persona]"));
+        assertTrue(assembled.variableSuffix().contains("outer: 话少。"));
+        assertTrue(assembled.variableSuffix().contains("\"bp\":88"));
+        assertFalse(assembled.variableSuffix().contains("sk-never-leave"));
+        assertFalse(assembled.variableSuffix().contains("apiKey"));
+        assertTrue(assembled.variableSuffix().contains("\u65F8"));
+        assertFalse(assembled.variableSuffix().contains("\u6600"));
+    }
+
+    @Test
     void toStringDoesNotLeakPrefixBody() {
         PromptRecord work = work("机密前缀正文应当被省略", "2.0.0");
         AssembledPrompt assembled = assembler.assemble(work, "{\"x\":1}", null, List.of(), null);

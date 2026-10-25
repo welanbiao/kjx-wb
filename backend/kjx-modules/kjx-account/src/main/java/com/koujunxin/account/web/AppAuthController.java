@@ -54,7 +54,7 @@ public class AppAuthController {
             HttpServletResponse response) {
         String requestId = bindRequestId(request, response);
         AccountResults.LoginResult data = accounts.loginByPassword(
-                body.phone(), body.password(), context(request, requestId, false));
+                body.phone(), body.password(), body.captchaId(), body.captchaData(), context(request, requestId, false));
         return ApiBody.ok(data, requestId);
     }
 

@@ -49,6 +49,10 @@
             <span class="sep">·</span>
             前端隐藏不是授权，后端才是权限边界
           </p>
+          <a
+            class="member-link"
+            href="/"
+          >会员页面</a>
           <el-button
             class="logout"
             @click="onLogout"
@@ -144,6 +148,13 @@ async function onLogout() {
 .sep {
   margin: 0 6px;
   color: #9aadb6;
+}
+.member-link {
+  color: var(--kjx-ticket-ink);
+  text-decoration: none;
+  min-height: var(--kjx-touch);
+  display: inline-flex;
+  align-items: center;
 }
 .nav-toggle {
   display: none;

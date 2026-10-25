@@ -32,6 +32,14 @@
       "analytics.access.projected",
       "analytics.ai_call.projected",
       "analytics.tool_call.projected"
+    ],
+    "billing": [
+      "billing.frozen",
+      "billing.settled",
+      "billing.released"
+    ],
+    "payment": [
+      "payment.paid"
     ]
   }
 }

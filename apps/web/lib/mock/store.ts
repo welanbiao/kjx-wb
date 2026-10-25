@@ -64,7 +64,7 @@ export type MockEntitlement = {
   workType: "layout" | "game";
   workStatus: WorkDetail["status"];
   unlockedAt: string;
-  source: "user" | "official_add";
+  source: "user" | "official_add" | "purchase";
   entryUrl: string;
 };
 
@@ -90,6 +90,22 @@ export type MockStore = {
   idempotency: Map<string, { hash: string; body: unknown; status: number }>;
   bindFailures: Map<number, { count: number; lockedUntil: number | null }>;
   autoReview: boolean;
+  runtimeSessions: MockRuntimeSession[];
+  aiSettings: Map<number, { baseUrl: string; model: string; apiKey: string }>;
+};
+
+export type MockRuntimeSession = {
+  sessionId: string;
+  accountId: number;
+  workCode: string;
+  trial: boolean;
+  payload: Record<string, unknown>;
+  checksum: string;
+  status: "ACTIVE" | "ENDED";
+  schemaVersion: string;
+  form: "A";
+  stage: string;
+  version: number;
 };
 
 function iso(daysFromNow: number, endOfDay = false): string {
@@ -138,9 +154,9 @@ export const SEEDED_EXPIRED_MEMBER: MockMember = {
 const WORKS: MockWork[] = [
   {
     workCode: "breakup-editor",
-    name: "分手编辑部",
-    workType: "layout",
-    summary: "多轮对话式 UI 布局。解锁后进入会话界面。",
+    name: "分手结局修改器",
+    workType: "game",
+    summary: "如果那句话没说出口，他们还会分手吗？",
     coverUrl: null,
     category: "layout",
     tags: ["会话", "布局"],
@@ -154,6 +170,25 @@ const WORKS: MockWork[] = [
     contentVersion: "1.0.0",
     entryUrl: null,
     publishTime: iso(-20),
+  },
+  {
+    workCode: "dream-phone",
+    name: "梦女小手机",
+    workType: "game",
+    summary: "一部微信外壳的梦女手机：聊天、朋友圈、钱包与生活应用。",
+    coverUrl: null,
+    category: "game",
+    tags: ["文游", "手机"],
+    status: "PUBLISHED",
+    currentVersion: "1.0.0",
+    accessForm: "A",
+    unlocked: false,
+    unlockedAt: null,
+    screenshots: [],
+    allowedChannels: ["PLATFORM", "BYOK"],
+    contentVersion: "1.0.0",
+    entryUrl: null,
+    publishTime: iso(-15),
   },
   {
     workCode: "midnight-script",
@@ -336,6 +371,8 @@ export function createInitialStore(): MockStore {
     idempotency: new Map(),
     bindFailures: new Map(),
     autoReview: false,
+    runtimeSessions: [],
+    aiSettings: new Map(),
   };
 }
 

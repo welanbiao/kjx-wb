@@ -28,7 +28,9 @@ public final class AccountRequests {
 
     public record LoginRequest(
             @NotBlank String phone,
-            @NotBlank String password
+            @NotBlank String password,
+            String captchaId,
+            Map<String, Object> captchaData
     ) {
     }
 

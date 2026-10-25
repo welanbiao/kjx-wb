@@ -1,0 +1,76 @@
+{
+  "workCode": "breakup-editor",
+  "title": "分手结局修改器",
+  "eyebrow": "叩君芯模拟器 · 七夕特别版",
+  "tagline1": "如果那句话没说出口，他们还会分手吗？",
+  "tagline2": "今天，帮 TA 改写曾经的选择。",
+  "exampleEyebrow": "玩法示例",
+  "trialBadge": "试玩",
+  "lockedLabel": "敬请期待",
+  "playableId": "asphyxia",
+  "coupleLabel": "江雪 × 张旸奕",
+  "gold": "他曾为她，删掉最好的朋友；最后，为朋友的一句话，删掉了她。",
+  "typeTag": "回避型依恋 × 焦虑型依恋",
+  "slides": [
+    {
+      "id": "asphyxia",
+      "playable": true,
+      "locked": false,
+      "category": "玩法示例",
+      "typeTag": "回避型依恋 × 焦虑型依恋",
+      "couple": "江雪 × 张旸奕",
+      "gold": "他曾为她，删掉最好的朋友；最后，为朋友的一句话，删掉了她。",
+      "wallAccent": "#2563eb",
+      "leftPhone": "assets/wall-phone-complete-asphyxia-left.webp",
+      "rightPhone": "assets/wall-phone-complete-asphyxia-right.webp"
+    },
+    {
+      "id": "growth",
+      "playable": false,
+      "locked": true,
+      "category": "自我成长型",
+      "typeTag": "敏感自卑 × 过分施舍",
+      "couple": "江迟 × 温宁",
+      "gold": "",
+      "wallAccent": "#8B6FE8",
+      "leftPhone": "assets/wall-phone-complete-growth-left.webp",
+      "rightPhone": "assets/wall-phone-complete-growth-right.webp"
+    },
+    {
+      "id": "timezone",
+      "playable": false,
+      "locked": true,
+      "category": "现实碾压型",
+      "typeTag": "上岸第一剑，先斩意中人",
+      "couple": "方硕 × 苏念",
+      "gold": "",
+      "wallAccent": "#5C5C66",
+      "leftPhone": "assets/wall-phone-complete-timezone-left.webp",
+      "rightPhone": "assets/wall-phone-complete-timezone-right.webp"
+    },
+    {
+      "id": "moonlight",
+      "playable": false,
+      "locked": true,
+      "category": "命运捉弄型",
+      "typeTag": "一方绝症，瞒着不说",
+      "couple": "秦渡 × 夏栀",
+      "gold": "",
+      "wallAccent": "#00c0e8",
+      "leftPhone": "assets/wall-phone-complete-moonlight-left.webp",
+      "rightPhone": "assets/wall-phone-complete-moonlight-right.webp"
+    },
+    {
+      "id": "mute",
+      "playable": false,
+      "locked": true,
+      "category": "禁忌之恋型",
+      "typeTag": "误打误撞，爱上闺蜜喜欢的人",
+      "couple": "谢衍 × 唐梨",
+      "gold": "",
+      "wallAccent": "#66AB4B",
+      "leftPhone": "assets/wall-phone-complete-mute-left.webp",
+      "rightPhone": "assets/wall-phone-complete-mute-right.webp"
+    }
+  ]
+}

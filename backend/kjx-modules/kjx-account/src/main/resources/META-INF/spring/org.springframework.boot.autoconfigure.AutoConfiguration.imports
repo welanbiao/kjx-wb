@@ -1,1 +1,2 @@
 com.koujunxin.account.config.AccountAutoConfiguration
+com.koujunxin.account.config.AccountWebAutoConfiguration

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>分手结局修改器 v2（给产品）</title>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#1a1614}
+    .screen{display:none!important}
+    .screen.active{display:flex!important}
+  </style>
+  <link rel="stylesheet" href="css/fonts.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/v4.css" />
+</head>
+<body>
+
+  <audio id="prologue-bgm-audio" preload="none" loop hidden></audio>
+  <div id="app">
+    <div class="phone-shell">
+    <div class="phone" id="phone">
+      <img class="wall2-device-chrome" src="assets/wall2/device-chrome-full.svg" alt="" draggable="false" decoding="async" aria-hidden="true" />
+      <div class="phone-bezel">
+        <div class="status-bar" id="status-bar">
+          <span class="status-time" id="status-time" data-ui="状态栏时间">9:41</span>
+          <button class="dyn-island idle" id="dyn-island" type="button" tabindex="-1" data-ui="动态岛">
+            <img class="dyn-island-figma" src="assets/home/figma-dynamic-island.svg" width="111" height="31" alt="" draggable="false" aria-hidden="true" />
+            <span class="dyn-lenses" aria-hidden="true"><i class="cam"></i><i class="dot"></i></span>
+          </button>
+          <span class="status-icons" aria-hidden="true" data-ui="状态栏信号电量">
+            <img class="status-icons-figma" src="assets/home/figma-status-icons-right.svg" width="75" height="13" alt="" draggable="false" />
+          </span>
+        </div>
+        <div class="toast-stack" id="toast-stack"></div>
+        <div class="processing" id="processing">
+          <div class="processing-card">
+            <div class="processing-spin"></div>
+            <span id="processing-label">请稍候</span>
+          </div>
+        </div>
+        <div class="ripple-mask" id="ripple-mask" hidden>
+          <div class="ripple-card">
+            <div class="ripple-kicker">世界线在颤</div>
+            <p id="ripple-text"></p>
+            <button type="button" class="btn primary" id="ripple-ok">继续</button>
+          </div>
+        </div>
+        <div class="phone-viewport">
+        <div class="app-chrome" id="app-chrome" hidden>
+          <div class="chrome-row">
+            <button class="world-chip" id="world-chip" type="button">回到原故事</button>
+            <span class="demo-badge" id="demo-badge" hidden>演示</span>
+          </div>
+          <div class="metric-board" id="metric-board" hidden>
+            <div class="metric-block">
+              <div class="metric-row">
+                <span class="metric-k">分手概率</span>
+                <em class="metric-v accent" id="m-bp">100%</em>
+              </div>
+              <div class="metric-bar" aria-hidden="true"><i id="m-bp-bar"></i></div>
+            </div>
+            <div class="metric-block">
+              <div class="metric-row">
+                <span class="metric-k" id="love-name">对方对我的爱意</span>
+                <em class="metric-v accent" id="m-love">24%</em>
+              </div>
+              <div class="metric-bar soft" aria-hidden="true"><i id="m-love-bar"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <section class="screen active theme-night" id="screen-title">
+          <div class="title-bg" aria-hidden="true"></div>
+          <div class="title-veil" aria-hidden="true"></div>
+          <button class="title-gear" id="btn-title-settings" type="button" aria-label="API 设置">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.07 7.07 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.77 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.12.22.37.3.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96c.23.08.48 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+          </button>
+          <div class="title-stage">
+            <div class="title-eyebrow" id="title-eyebrow">叩君芯模拟器 · 七夕特别版</div>
+            <div class="title-mark" role="img" aria-label="叩君芯"></div>
+            <h1 class="title-name"><span class="hl">分手结局</span>修改器</h1>
+            <div class="title-tagline-wrap">
+              <p class="title-tagline" id="title-tagline">如果那句话没说出口，他们还会分手吗？<br />今天，帮TA改写曾经的选择。</p>
+            </div>
+            <div class="title-actions">
+              <button class="btn primary full" id="btn-title-continue" type="button" hidden>继续游戏</button>
+              <button class="btn primary full" id="btn-title-start" type="button">开始游戏</button>
+            </div>
+            <button class="title-reset" id="btn-title-reset" type="button">重置进度</button>
+            <p class="tiny title-hint" id="title-hint"></p>
+          </div>
+        </section>
+
+        <template id="tpl-screen-prologue">
+        <section class="screen theme-night" id="screen-prologue">
+          <div class="prologue-stage">
+            <div class="prologue-block">
+              <div class="prologue-eyebrow" id="prologue-eyebrow">叩君芯模拟器 · 七夕特别版</div>
+              <div class="prologue-body">
+                <div class="prologue-text" id="prologue-text"></div>
+              </div>
+              <div class="prologue-foot">
+                <div class="prologue-hint" id="prologue-hint">轻触继续</div>
+                <button class="prologue-pick" id="prologue-pick" type="button" hidden>捡起这部手机</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-launch">
+        <section class="screen theme-paper" id="screen-launch">
+          <div class="launch-hero">
+            <div class="launch-mark">修</div>
+            <h1>接口</h1>
+            <p>未填 Key 可用演示模式。<br />推演仍按同一套规则走。</p>
+          </div>
+          <div class="launch-sheet">
+            <div class="field"><label>平台</label><select id="api-provider"></select></div>
+            <div class="field"><label>模型</label><select id="api-model"></select></div>
+            <div class="field"><label>API Key</label><input id="api-key" type="password" placeholder="sk-…" autocomplete="off" /></div>
+            <div class="field"><label>Base URL</label><input id="api-base" type="text" /></div>
+            <p class="status-msg" id="launch-status"></p>
+            <div class="btn-row">
+              <button class="btn" id="btn-verify" type="button">验证</button>
+              <button class="btn primary" id="btn-enter" type="button">进入</button>
+            </div>
+            <button class="btn ghost full" id="btn-demo" type="button">演示模式</button>
+            <button class="btn ghost full" id="btn-launch-back" type="button">返回</button>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-wall">
+        <section class="screen theme-wall-v2" id="screen-wall">
+          <header class="wall2-nav">
+            <button class="wall2-back" id="wall-back" type="button" aria-label="返回">
+              <img src="assets/wall2/icon-back.svg" width="11" height="11" alt="" draggable="false" aria-hidden="true" />
+            </button>
+            <h2 class="wall2-title" id="wall-title">选择你进入故事的视角</h2>
+            <span class="wall2-demo-pill" id="wall-demo-pill" aria-hidden="true"><i></i>玩法示例</span>
+          </header>
+          <div class="wall2-accent" aria-hidden="true"></div>
+          <div class="wall2-tip" id="wall-tip">
+            <svg class="wall2-tip-ico" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.2v3.2M8 5.2h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <p id="wall-tip-text">选择后你将进入ta的手机，探索感情真相，修改曾经的对话，尝试破镜重圆。</p>
+          </div>
+          <p class="wall2-type" id="wall-slide-type">“回避型依恋×焦虑型依恋”</p>
+          <div class="wall2-dots" id="wall2-dots" role="tablist" aria-label="切换情侣"></div>
+          <div class="wall2-stage-row">
+            <button type="button" class="wall2-page-btn" id="wall2-prev" aria-label="上一对">‹</button>
+            <div class="wall2-stage" id="wall2-stage" aria-label="选择视角手机">
+              <div class="wall2-wash" id="wall2-wash" aria-hidden="true"></div>
+            </div>
+            <button type="button" class="wall2-page-btn" id="wall2-next" aria-label="下一对">›</button>
+          </div>
+          <div class="wall2-tabs" id="wall2-tabs" role="tablist" aria-label="选择角色"></div>
+          <div class="wall2-cards" id="wall2-cards"></div>
+          <div class="wall2-footer">
+            <span class="wall2-footer-line" aria-hidden="true"></span>
+            <button class="wall2-book" id="btn-book" type="button">结 局 册</button>
+            <span class="wall2-footer-line" aria-hidden="true"></span>
+          </div>
+          <!-- 兼容旧脚本引用：隐藏占位 -->
+          <div id="wall-picker" hidden>
+            <div id="wall-meta-stack"><span id="wall-meta-index"></span><span id="wall-slide-eyebrow"></span></div>
+            <div id="wall-track"></div>
+            <div id="wall-dots"></div>
+            <div id="wall-pick-row">
+              <button id="wall-pick-a" type="button"></button>
+              <button id="wall-pick-b" type="button"></button>
+            </div>
+            <button id="wall-prev" type="button"></button>
+            <button id="wall-next" type="button"></button>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-side">
+        <section class="screen theme-paper" id="screen-side">
+          <header class="app-nav">
+            <button class="nav-back-ink" id="side-back" type="button">‹</button>
+            <h2>代入谁</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="side-scroll scroll-soft">
+            <div class="side-intro" id="side-intro">
+              <p class="side-intro-lead" id="side-intro-lead"></p>
+              <p class="side-intro-body" id="side-intro-body"></p>
+              <p class="side-intro-ops-title" id="side-intro-ops-title"></p>
+              <div class="side-intro-ops" id="side-intro-ops"></div>
+            </div>
+            <div class="side-wrap" id="side-wrap"></div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-hook">
+        <section class="screen theme-dm" id="screen-hook">
+          <header class="dm-nav hook-nav">
+            <div class="dm-nav-center">
+              <div class="dm-avatar-ring"><span id="hook-letter">?</span></div>
+              <div>
+                <div class="dm-name" id="hook-name">对方</div>
+                <div class="dm-sub" id="hook-sub">屏幕还亮着</div>
+              </div>
+            </div>
+          </header>
+          <div class="sub-body dm-body scroll-soft">
+            <div class="chat-thread" id="hook-thread"></div>
+          </div>
+          <div class="hook-dock">
+            <p class="hook-dock-hint">你还没放下这部手机。</p>
+            <button class="btn primary hook-next" id="hook-continue" type="button">解锁主屏幕</button>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-home">
+        <section class="screen theme-ios home-v2" id="screen-home">
+          <div class="ios-wallpaper" id="home-wallpaper" aria-hidden="true"></div>
+          <button class="wall2-back" id="home-back" type="button" aria-label="返回案卷">
+            <img src="assets/wall2/icon-back.svg" width="11" height="11" alt="" draggable="false" aria-hidden="true" />
+          </button>
+          <span class="status-chip home-status-chip" id="home-status" hidden>已分手</span>
+          <div class="home-body">
+            <div class="ios-hero-time">
+              <div class="ios-clock" id="home-clock">20:29</div>
+              <div class="ios-date" id="home-date">9月7日 周一</div>
+            </div>
+            <div class="home-widgets home-col" id="home-widgets">
+              <div class="home-widget home-widget-bp">
+                <div class="home-widget-bp-text">
+                  <em class="home-bp-val" id="h-bp">100 %</em>
+                  <span class="home-bp-label">当前分手概率</span>
+                </div>
+                <div class="home-bp-track" aria-hidden="true"><i id="h-bp-bar"></i></div>
+              </div>
+              <div class="home-widget home-widget-ring">
+                <div class="home-ring" id="h-lm-ring" style="--p:24">
+                  <img class="home-ring-arc" src="assets/home/figma-ring-a.svg" alt="" aria-hidden="true" />
+                  <img class="home-ring-knob" src="assets/home/figma-ring-dot.svg" alt="" aria-hidden="true" />
+                  <em id="h-lm">24</em>
+                </div>
+                <span class="home-ring-label" id="h-lm-label">张→江爱意值</span>
+              </div>
+              <div class="home-widget home-widget-ring">
+                <div class="home-ring" id="h-lf-ring" style="--p:70">
+                  <img class="home-ring-arc" src="assets/home/figma-ring-b.svg" alt="" aria-hidden="true" />
+                  <img class="home-ring-knob" src="assets/home/figma-ring-dot.svg" alt="" aria-hidden="true" />
+                  <em id="h-lf">70</em>
+                </div>
+                <span class="home-ring-label" id="h-lf-label">江→张爱意值</span>
+              </div>
+            </div>
+            <div class="ios-home-music home-col">
+              <div class="music-widget" id="home-music">
+                <div class="music-glass-clip" aria-hidden="true">
+                  <div class="music-glass-face"></div>
+                  <div class="music-glass-tint"></div>
+                </div>
+                <audio id="home-bgm-audio" preload="none" loop></audio>
+                <div class="music-art" id="home-music-art" aria-hidden="true"></div>
+                <div class="music-meta">
+                  <img class="music-note" src="assets/home/figma-music-note.svg" alt="" width="15" height="19" />
+                  <div class="music-text-stack">
+                    <div class="music-now">Now Playing</div>
+                    <div class="music-title-block">
+                      <div class="music-title" id="home-music-title">Sea of Hate, Sky of Love</div>
+                      <img class="music-explicit" src="assets/home/figma-explicit.svg" alt="" width="12" height="12" />
+                    </div>
+                  </div>
+                  <button class="music-btn play" id="home-music-toggle" type="button" aria-label="播放">
+                    <span class="playback-glass-clip" aria-hidden="true">
+                      <span class="playback-glass-face"></span>
+                      <span class="playback-glass-tint"></span>
+                    </span>
+                    <img class="ic-play-figma" src="assets/home/figma-play.svg" alt="" width="9" height="11" />
+                    <img class="ic-pause-figma" src="assets/home/figma-pause.svg" alt="" width="8" height="11" />
+                    <span class="music-btn-label" id="home-music-btn-label">Play</span>
+                  </button>
+                </div>
+                <button class="music-progress" id="home-music-progress" type="button" hidden aria-hidden="true" tabindex="-1">
+                  <i id="home-music-bar"></i>
+                </button>
+                <span id="home-music-cur" hidden>0:00</span>
+                <span id="home-music-dur" hidden>0:00</span>
+                <span id="home-music-artist" hidden>恨海情天</span>
+              </div>
+              <div class="music-caption">Music</div>
+            </div>
+            <div class="ios-apps home-apps home-col">
+              <button class="ios-app" data-app="chat" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <span class="glyph glyph-chat" aria-hidden="true">
+                    <img class="g-bubble" src="assets/home/glyph-chat-bubble.svg" alt="" />
+                    <img class="g-stem" src="assets/home/glyph-chat-stem.svg" alt="" />
+                    <img class="g-dot" src="assets/home/glyph-chat-dot.svg" alt="" />
+                  </span>
+                  <em class="app-badge" aria-label="1条未读">1</em>
+                </span>
+                <span class="ios-label">消息</span>
+              </button>
+              <button class="ios-app" data-app="contacts" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <span class="glyph glyph-contacts" aria-hidden="true">
+                    <img class="g-head" src="assets/home/glyph-contacts-head.svg" alt="" />
+                    <img class="g-body" src="assets/home/glyph-contacts-body.svg" alt="" />
+                  </span>
+                </span>
+                <span class="ios-label">通讯录</span>
+              </button>
+              <button class="ios-app" data-app="notes" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-notes.svg" alt="" />
+                </span>
+                <span class="ios-label">备忘录</span>
+              </button>
+              <button class="ios-app" data-app="moments" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-moments.svg" alt="" />
+                </span>
+                <span class="ios-label">动态</span>
+              </button>
+              <button class="ios-app" data-app="wallet" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-wallet.svg" alt="" />
+                </span>
+                <span class="ios-label">账单</span>
+              </button>
+              <button class="ios-app" data-app="photos" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-photos.svg" alt="" />
+                </span>
+                <span class="ios-label">相册</span>
+              </button>
+              <button class="ios-app" data-app="settings" type="button">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-settings.svg" alt="" />
+                </span>
+                <span class="ios-label">设置</span>
+              </button>
+              <button class="ios-app" data-app="monitor" type="button" id="app-monitor">
+                <span class="ios-icon glass-icon">
+                  <span class="glass-face" aria-hidden="true"></span>
+                  <img class="glyph glyph-single" src="assets/home/glyph-monitor.svg" alt="" />
+                </span>
+                <span class="ios-label">监控恋人</span>
+              </button>
+            </div>
+          </div>
+          <div class="home-dock-v2" id="home-dock">
+            <button class="home-switch" id="btn-replay" type="button" aria-pressed="false">
+              <span class="home-switch-knob" aria-hidden="true"></span>
+              <span class="home-switch-label" id="btn-replay-label">自动播放关闭</span>
+            </button>
+            <button class="home-switch" id="dock-world" type="button" aria-pressed="false">
+              <span class="home-switch-knob" aria-hidden="true"></span>
+              <span class="home-switch-label" id="dock-world-label">原世界回溯中</span>
+            </button>
+            <button class="home-pill" id="btn-release" type="button">结局册</button>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-chat">
+        <section class="screen theme-dm" id="screen-chat">
+          <header class="dm-nav">
+            <button class="dm-back" data-back="home" type="button">‹</button>
+            <div class="dm-nav-center">
+              <div class="dm-avatar-ring"><span id="chat-letter">?</span></div>
+              <div>
+                <div class="dm-name" id="chat-title">私信</div>
+                <div class="dm-sub" id="chat-sub"></div>
+              </div>
+            </div>
+            <button class="dm-date-btn" id="btn-node-list" type="button" aria-label="时间线">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M7 2a1 1 0 0 0-1 1v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3h-1V3a1 1 0 1 0-2 0v1H8V3a1 1 0 0 0-1-1zm12 8H5v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9z"/></svg>
+            </button>
+          </header>
+          <div class="sub-body dm-body"><div class="chat-thread" id="chat-thread"></div></div>
+          <div class="dm-composer" id="dm-composer">
+            <p class="send-hint" id="send-hint" hidden></p>
+            <div class="dm-composer-row">
+              <input id="chat-input" type="text" placeholder="发消息…" maxlength="200" autocomplete="off" />
+              <button class="dm-send" id="btn-send" type="button" aria-label="发送">↑</button>
+            </div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-moments">
+        <section class="screen theme-moments" id="screen-moments">
+          <header class="moments-nav">
+            <button class="moments-back nav-back-ink" data-back="home" type="button" aria-label="返回">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <h2 id="moments-title">动态</h2>
+            <div class="moments-nav-tools"></div>
+          </header>
+          <div class="sub-body moments-scroll" id="moments-scroll">
+            <div class="moments-cover" id="moments-cover" aria-hidden="true"></div>
+            <div class="moments-feed" id="moments-body"></div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-notes">
+        <section class="screen theme-notes" id="screen-notes">
+          <header class="app-nav notes-nav">
+            <button class="nav-back-ink" data-back="home" type="button">‹</button>
+            <h2>便签</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="notes-board sub-body" id="notes-body"></div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-wallet">
+        <section class="screen theme-wallet" id="screen-wallet">
+          <header class="app-nav">
+            <button class="nav-back-ink" data-back="home" type="button">‹</button>
+            <h2>账单</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="sub-body wallet-wrap" id="wallet-body"></div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-photos">
+        <section class="screen theme-photos" id="screen-photos">
+          <header class="app-nav">
+            <button class="nav-back-ink" data-back="home" type="button">‹</button>
+            <h2>相册</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="sub-body photos-grid" id="photos-body"></div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-monitor">
+        <section class="screen theme-paper" id="screen-monitor">
+          <header class="app-nav">
+            <button class="nav-back-ink" data-back="home" type="button">‹</button>
+            <h2 id="monitor-title">对方的手机</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="sub-body" id="monitor-body"></div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-ending">
+        <section class="screen theme-night" id="screen-ending">
+          <div class="ending-card">
+            <div class="ending-kicker" id="ending-kicker">结局</div>
+            <h2 id="ending-title"></h2>
+            <p id="ending-line"></p>
+            <div class="ending-actions">
+              <button class="btn primary full" id="ending-home" type="button">回到故事</button>
+              <button class="btn soft full" id="ending-wall" type="button">换一对</button>
+              <button class="btn ghost light full" id="ending-book" type="button">查看结局册</button>
+            </div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-book">
+        <section class="screen theme-paper" id="screen-book">
+          <header class="app-nav">
+            <button class="nav-back-ink" id="book-back" type="button">‹</button>
+            <h2>结局册</h2>
+            <span class="nav-spacer"></span>
+          </header>
+          <div class="sub-body" id="book-body"></div>
+        </section>
+        </template>
+
+        </div>
+
+        <div class="sheet-mask" id="date-sheet" hidden>
+          <div class="sheet date-cal-sheet">
+            <div class="sheet-handle"></div>
+            <h3>聊天记录</h3>
+            <div class="cal-head">
+              <button class="cal-nav" id="cal-prev" type="button" aria-label="上一个月">‹</button>
+              <span class="cal-month-label" id="cal-month-label">2025年9月</span>
+              <button class="cal-nav" id="cal-next" type="button" aria-label="下一个月">›</button>
+            </div>
+            <div class="cal-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+            <p class="cal-legend">圆点 = 有聊天记录 · 红框 = 可介入改写</p>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div class="cal-summary">
+              <p class="cal-summary-hint" id="cal-summary-hint">选一天，看那天发生了什么</p>
+              <p class="cal-summary-text" id="cal-summary-text"></p>
+            </div>
+            <div class="cal-actions">
+              <button class="btn primary cal-confirm" id="cal-confirm" type="button" disabled>查看这一天</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="replay-dock" id="replay-dock" hidden>
+          <button type="button" id="replay-prev">返回</button>
+          <button type="button" id="replay-next">继续</button>
+        </div>
+
+        <div class="modal-mask" id="modal-mask">
+          <div class="modal" id="modal">
+            <div class="modal-grab" aria-hidden="true"></div>
+            <div class="modal-head">
+              <div class="modal-head-text">
+                <span class="modal-eyebrow" id="modal-eyebrow" hidden></span>
+                <h3 id="modal-title">改写</h3>
+              </div>
+              <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
+            </div>
+            <p id="modal-desc"></p>
+            <div id="modal-body"></div>
+            <div class="btn-row modal-actions" id="modal-actions"></div>
+          </div>
+        </div>
+        <div class="home-indicator" id="home-indicator" hidden></div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+</body>
+</html>

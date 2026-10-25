@@ -43,4 +43,14 @@ class UiNodeWhitelistTest {
                 () -> ui.validateNode(mapper.readTree("{\"type\":\"toast\",\"props\":{}}")));
         assertEquals("UI_PROPS_INVALID", failure.code());
     }
+
+    @Test
+    void chatBubbleAllowsOptionalSpeaker() throws Exception {
+        ui.validateNode(mapper.readTree(
+                "{\"type\":\"chat.bubble\",\"props\":{\"text\":\"hi\",\"role\":\"npc\",\"speaker\":\"A\"}}"));
+        ui.validateNode(mapper.readTree("{\"type\":\"chat.bubble\",\"props\":{\"text\":\"hi\",\"role\":\"npc\"}}"));
+        ToolFailure failure = assertThrows(ToolFailure.class, () -> ui.validateNode(mapper.readTree(
+                "{\"type\":\"chat.bubble\",\"props\":{\"text\":\"hi\",\"role\":\"npc\",\"channel\":\"group\"}}")));
+        assertEquals("UI_PROPS_INVALID", failure.code());
+    }
 }

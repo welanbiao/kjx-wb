@@ -1,0 +1,456 @@
+# WP-42 运行时路径。锚点由 openapi.yaml paths.$ref 引用。
+
+x-session-id: &sessionIdPath
+  name: id
+  in: path
+  required: true
+  description: 会话 id，对应控制器 `@PathVariable("id")`。
+  schema:
+    type: string
+    minLength: 1
+
+x-work-code-query: &workCodeQuery
+  name: workCode
+  in: query
+  required: true
+  schema:
+    $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+
+x-request-id: &requestIdHeader
+  $ref: "../../schemas/common.yaml#/parameters/RequestIdHeader"
+
+x-runtime-400: &runtime400
+  description: |
+    `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`UNKNOWN_COMPONENT` 400。
+    失败信封 `{code, data.errorName, msg, requestId}`，errorName 见 WP-42，未写入 errors.yaml。
+    `code` 与 HTTP 状态相同。
+  content:
+    application/json:
+      schema:
+        $ref: "../schemas/runtime.yaml#/RuntimeError"
+
+x-runtime-403: &runtime403
+  description: |
+    `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+    `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403。
+    失败信封 `{code, data.errorName, msg, requestId}`，errorName 见 WP-42，未写入 errors.yaml。
+  content:
+    application/json:
+      schema:
+        $ref: "../schemas/runtime.yaml#/RuntimeError"
+
+x-runtime-404: &runtime404
+  description: |
+    `WORK_PORT_UNAVAILABLE` 404。失败信封 `{code, data.errorName, msg, requestId}`，未写入 errors.yaml。
+  content:
+    application/json:
+      schema:
+        $ref: "../schemas/runtime.yaml#/RuntimeError"
+
+x-runtime-409: &runtime409
+  description: |
+    `SAVE_CONFLICT` 409。失败信封 `{code, data.errorName, msg, requestId}`，未写入 errors.yaml。
+  content:
+    application/json:
+      schema:
+        $ref: "../schemas/runtime.yaml#/RuntimeError"
+
+sessions:
+  post:
+    tags:
+      - App Runtime
+    operationId: createSession
+    summary: 创建作品会话
+    description: |
+      请求体仅读取 `workCode`。成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *requestIdHeader
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/runtime.yaml#/CreateSessionRequest"
+    responses:
+      "200":
+        description: 已创建。data 含 payloadJson。
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SessionDetailResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+  get:
+    tags:
+      - App Runtime
+    operationId: listSessions
+    summary: 列出作品会话
+    description: |
+      查询参数 `workCode` 必填。列表项不含 payloadJson。成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 会话列表
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SessionListResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+sessionById:
+  get:
+    tags:
+      - App Runtime
+    operationId: getSession
+    summary: 查询会话
+    description: |
+      path `{id}` + query `workCode`。data 含 payloadJson。成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *sessionIdPath
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 会话详情
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SessionDetailResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+  delete:
+    tags:
+      - App Runtime
+    operationId: endSession
+    summary: 结束会话
+    description: |
+      path `{id}` + query `workCode`。data 不含 payloadJson。成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *sessionIdPath
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 已结束
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SessionSummaryResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+sessionState:
+  post:
+    tags:
+      - App Runtime
+    operationId: applySessionState
+    summary: 应用会话状态变更
+    description: |
+      path `{id}` + query `workCode`。body 为 StateMutation（type、schemaVersion、payloadJson）。
+      成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *sessionIdPath
+      - *workCodeQuery
+      - *requestIdHeader
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/runtime.yaml#/StateMutation"
+    responses:
+      "200":
+        description: 变更后的会话（含 payloadJson）
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SessionDetailResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+sessionStage:
+  get:
+    tags:
+      - App Runtime
+    operationId: getSessionStage
+    summary: 分段披露当前阶段
+    description: |
+      path `{id}` + query `workCode`。无权益时仍 HTTP 200 且 `data.gated=true`，布局与节点为空壳。
+      成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *sessionIdPath
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 阶段内容或 gated 空壳
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/StageResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+sessionSandbox:
+  get:
+    tags:
+      - App Runtime
+    operationId: getSessionSandbox
+    summary: 沙箱宿主引导
+    description: |
+      path `{id}` + query `workCode`。下发 iframeSrc、nonce、origin、sandbox、methods。
+      成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *sessionIdPath
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 沙箱票据与 iframe 地址
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SandboxResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+saves:
+  get:
+    tags:
+      - App Runtime
+    operationId: listSaves
+    summary: 列出会话存档
+    description: |
+      query `sessionId`、`workCode` 必填。成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - name: sessionId
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - *workCodeQuery
+      - *requestIdHeader
+    responses:
+      "200":
+        description: 存档列表
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SaveListResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+  post:
+    tags:
+      - App Runtime
+    operationId: createSave
+    summary: 写入会话存档
+    description: |
+      body 读取 sessionId、workCode；slot 缺省 `auto`；version 为乐观锁。
+      成功信封 `{code:0, data, msg, requestId}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *requestIdHeader
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/runtime.yaml#/CreateSaveRequest"
+    responses:
+      "200":
+        description: 已写入存档
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/SaveViewResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+runtimeHost:
+  post:
+    tags:
+      - App Runtime
+    operationId: invokeRuntimeHost
+    summary: 沙箱宿主代理
+    description: |
+      body 必填 sessionId、workCode、nonce、method；iframeOrigin 缺省 `"null"`；payloadJson 缺省 `{}`。
+      成功信封 `{code:0, data, msg, requestId}`，data 为 `{ok, method, payloadJson}`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *requestIdHeader
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/runtime.yaml#/HostInvokeRequest"
+    responses:
+      "200":
+        description: 宿主回包（已去 token/Cookie）
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/HostInvokeResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409
+
+toolsInvoke:
+  post:
+    tags:
+      - App Runtime
+    operationId: invokeRuntimeTool
+    summary: HTTP 工具调用
+    description: |
+      body 必填 sessionId、workCode。nonce 非空时按宿主 `tools.invoke` 校验 origin。
+      成功信封 `{code:0, data, msg, requestId}`，data 为 `{ok, method, payloadJson}`，method 为 `tools.invoke`。
+
+      失败 HTTP 状态 + `data.errorName`（WP-42，未写入 errors.yaml）：
+      `ENTITLEMENT_REQUIRED` 403；`SESSION_NOT_OWNED` 403；`CROSS_WORK` 403；`CROSS_SESSION` 403；
+      `SCHEMA_MISMATCH` 400；`CHECKSUM_MISMATCH` 400；`SAVE_CONFLICT` 409；
+      `METHOD_NOT_ALLOWED` 403；`NONCE_INVALID` 403；`ORIGIN_REJECTED` 403；
+      `UNKNOWN_COMPONENT` 400；`WORK_PORT_UNAVAILABLE` 404。
+    security:
+      - AppBearer: []
+    parameters:
+      - *requestIdHeader
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/runtime.yaml#/ToolsInvokeRequest"
+    responses:
+      "200":
+        description: 工具调用结果
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/runtime.yaml#/HostInvokeResponse"
+      "400": *runtime400
+      "401":
+        $ref: "../../schemas/common.yaml#/responses/Unauthorized"
+      "403": *runtime403
+      "404": *runtime404
+      "409": *runtime409

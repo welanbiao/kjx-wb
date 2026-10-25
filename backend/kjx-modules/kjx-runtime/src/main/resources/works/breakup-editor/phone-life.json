@@ -1,0 +1,58 @@
+{
+  "asphyxia": {
+    "a": {
+      "threads": [
+        {
+          "id": "juan",
+          "name": "娟姐",
+          "relation": "他的三年好友",
+          "unread": 1,
+          "preview": "你还跟他在一起啊",
+          "previewTime": "昨天",
+          "messages": [
+            { "id": "jx_j1", "from": "them", "text": "你还跟他在一起啊。", "time": "21:02" },
+            { "id": "jx_j2", "from": "me", "text": "关你什么事。", "time": "21:10" }
+          ]
+        },
+        {
+          "id": "ma",
+          "name": "妈妈",
+          "relation": "家人",
+          "unread": 0,
+          "preview": "早点睡",
+          "previewTime": "今天",
+          "messages": [
+            { "id": "jx_m1", "from": "them", "text": "作业写完了吗。早点睡。", "time": "22:11" }
+          ]
+        }
+      ]
+    },
+    "b": {
+      "threads": [
+        {
+          "id": "juan",
+          "name": "娟",
+          "relation": "三年好友",
+          "unread": 2,
+          "preview": "她配吗",
+          "previewTime": "昨天",
+          "messages": [
+            { "id": "zy_j1", "from": "them", "text": "她配吗。你自己心里没数？", "time": "19:40" },
+            { "id": "zy_j2", "from": "me", "text": "别说了。", "time": "19:44" }
+          ]
+        },
+        {
+          "id": "ma",
+          "name": "妈",
+          "relation": "家人",
+          "unread": 1,
+          "preview": "联考怎么回事",
+          "previewTime": "今天",
+          "messages": [
+            { "id": "zy_m1", "from": "them", "text": "联考怎么回事。回来我们谈。", "time": "21:18" }
+          ]
+        }
+      ]
+    }
+  }
+}

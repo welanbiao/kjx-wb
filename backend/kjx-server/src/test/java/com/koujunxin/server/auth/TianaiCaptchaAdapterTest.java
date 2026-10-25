@@ -67,7 +67,7 @@ class TianaiCaptchaAdapterTest {
         properties.setExpireMs(5_000L);
         CacheStore store = new RedissonCaptchaCacheStore(redis(), mapper);
         app = TianaiCaptchaSupport.create(store, properties);
-        port = new TianaiCaptchaVerificationPort(app, mapper);
+        port = new TianaiCaptchaVerificationPort(app, new CaptchaPassStore(redis()), mapper);
     }
 
     @Test
@@ -102,7 +102,8 @@ class TianaiCaptchaAdapterTest {
         properties.setExpireMs(400L);
         CacheStore store = new RedissonCaptchaCacheStore(redis(), mapper);
         ImageCaptchaApplication shortLived = TianaiCaptchaSupport.create(store, properties);
-        CaptchaVerificationPort shortPort = new TianaiCaptchaVerificationPort(shortLived, mapper);
+        CaptchaVerificationPort shortPort =
+                new TianaiCaptchaVerificationPort(shortLived, new CaptchaPassStore(redis()), mapper);
         CaptchaResponse<ImageCaptchaVO> generated = shortLived.generateCaptcha(CaptchaTypeConstant.SLIDER);
         Map<String, Object> track = sliderTrack(shortLived, generated, 1.0f);
         Thread.sleep(700);
@@ -115,8 +116,19 @@ class TianaiCaptchaAdapterTest {
         ImageCaptchaApplication other = TianaiCaptchaSupport.create(shared, properties);
         CaptchaResponse<ImageCaptchaVO> generated = app.generateCaptcha(CaptchaTypeConstant.SLIDER);
         Map<String, Object> track = sliderTrack(generated, 1.0f);
-        CaptchaVerificationPort otherPort = new TianaiCaptchaVerificationPort(other, mapper);
+        CaptchaVerificationPort otherPort =
+                new TianaiCaptchaVerificationPort(other, new CaptchaPassStore(redis()), mapper);
         assertTrue(otherPort.verify(generated.getId(), track));
+    }
+
+    @Test
+    void matchAndMarkAllowsLaterVerifyViaPass() {
+        CaptchaResponse<ImageCaptchaVO> generated = app.generateCaptcha(CaptchaTypeConstant.SLIDER);
+        Map<String, Object> track = sliderTrack(generated, 1.0f);
+        TianaiCaptchaVerificationPort tianai = (TianaiCaptchaVerificationPort) port;
+        assertTrue(tianai.matchAndMark(generated.getId(), track));
+        assertTrue(port.verify(generated.getId(), Map.of()));
+        assertFalse(port.verify(generated.getId(), Map.of()));
     }
 
     private String cacheKey(String id) {

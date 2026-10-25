@@ -25,7 +25,8 @@ import com.koujunxin.notification.outbox.OutboxValidationException;
 public class OutboxPayloadValidator {
 
     private static final Set<String> AGGREGATES = Set.of(
-            "account", "member", "binding", "entitlement", "unlock", "work", "notification", "analytics");
+            "account", "member", "binding", "entitlement", "unlock", "work", "notification", "analytics",
+            "billing", "payment");
 
     private static final Set<String> SENSITIVE_KEYS = Set.of(
             "phone", "mobile", "password", "token", "authorization", "cookie", "secret",

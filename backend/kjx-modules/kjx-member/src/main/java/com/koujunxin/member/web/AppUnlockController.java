@@ -45,6 +45,16 @@ public class AppUnlockController {
         return ApiBody.of(outcome.code(), outcome.data(), outcome.message(), requestId);
     }
 
+    @PostMapping("/app/works/{workCode}/purchase")
+    public ApiBody<Map<String, Object>> purchase(
+            @PathVariable String workCode,
+            @RequestHeader(value = MemberWebSupport.IDEMPOTENCY, required = false) String idem,
+            HttpServletRequest request) {
+        String requestId = MemberWebSupport.requestId(request);
+        UnlockOutcome outcome = unlocks.purchase(accounts.requireAccountId(), workCode, idem, requestId);
+        return ApiBody.of(outcome.code(), outcome.data(), outcome.message(), requestId);
+    }
+
     @GetMapping("/app/entitlements")
     public ApiBody<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") int pageNo,

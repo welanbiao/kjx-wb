@@ -46,7 +46,9 @@ class MysqlRuntimeTest extends MysqlRuntimeSupport {
                 new SandboxGuard(store, Clock.systemUTC(), Duration.ofHours(1)),
                 command -> ToolResult.ok("{\"mysql\":true}"),
                 null,
-                tx());
+                tx(),
+                null,
+                null);
     }
 
     @Test

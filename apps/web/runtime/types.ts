@@ -11,6 +11,7 @@ export type SessionView = {
   status: "ACTIVE" | "ENDED";
   version: number;
   payloadJson?: string;
+  trial?: boolean;
 };
 
 export type StageView = {

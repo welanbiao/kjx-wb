@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.koujunxin.runtime.api.dto.SessionRef;
 import com.koujunxin.runtime.api.dto.ToolExecutionCommand;
@@ -28,8 +29,8 @@ class ToolExecutionMysqlTest extends MysqlToolSupport {
 
     @Test
     void flywayVersionsAndTablesExist() {
-        assertEquals(9, jdbc().queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE version BETWEEN '620' AND '628'",
+        assertEquals(10, jdbc().queryForObject(
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE version BETWEEN '620' AND '629'",
                 Integer.class));
         assertEquals(1, jdbc().queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'kjx_tool'",
@@ -39,6 +40,11 @@ class ToolExecutionMysqlTest extends MysqlToolSupport {
                 Integer.class));
         assertTrue(jdbc().queryForObject("SELECT COUNT(*) FROM kjx_tool WHERE code = 'time.get'", Integer.class) > 0);
         assertTrue(jdbc().queryForObject("SELECT COUNT(*) FROM kjx_tool WHERE code = 'metric.adjust'", Integer.class) > 0);
+        assertTrue(jdbc().queryForObject("SELECT COUNT(*) FROM kjx_tool WHERE code = 'persona.assemble'", Integer.class) > 0);
+        assertTrue(jdbc().queryForObject("SELECT COUNT(*) FROM kjx_tool WHERE code = 'chat.group.send'", Integer.class) > 0);
+        assertEquals("string", jdbc().queryForObject(
+                "SELECT props_schema ->> '$.properties.speaker.type' FROM kjx_ui_node_type WHERE type = 'chat.bubble'",
+                String.class));
     }
 
     @Test
@@ -104,6 +110,51 @@ class ToolExecutionMysqlTest extends MysqlToolSupport {
         assertEquals(1, state.applies.get());
         ToolResult tooBig = executor.execute(cmd("metric.adjust", "m2", "{\"delta\":20}"));
         assertEquals("PRECONDITION_FAILED", tooBig.code());
+    }
+
+    @Test
+    void sharedL2BuiltinsPersistStateAndWhitelistedUi() throws Exception {
+        ToolHarness.GrantingEntitlement entitlements = entitlements();
+        entitlements.grant(9L, "work-a");
+        ToolHarness.OwnerAuth owners = owners();
+        owners.own("sess-1", 9L);
+        ToolHarness.MemorySessionState state = sessionState();
+        state.put(new com.koujunxin.runtime.api.dto.SessionStateSnapshot(
+                new SessionRef("sess-1", "work-a"),
+                "INTRO",
+                "1.0",
+                "{\"wallet\":100,\"persona\":{\"outer\":\"o\",\"inner\":\"i\",\"origin\":\"g\",\"speech\":\"s\"}}"));
+        ToolExecutor executor = executor(entitlements, owners, state, state);
+
+        ToolResult persona = executor.execute(cmd("persona.assemble", "p1", "{}"));
+        assertTrue(persona.success());
+        JsonNode personaPayload = mapper().readTree(persona.payloadJson());
+        assertTrue(personaPayload.path("state").path("prompt").path("persona").isTextual());
+        assertEquals(0, personaPayload.path("ui").size());
+
+        ToolResult chat = executor.execute(cmd("chat.send", "c1", "{\"content\":\"hi\"}"));
+        assertTrue(chat.success());
+        JsonNode chatPayload = mapper().readTree(chat.payloadJson());
+        assertEquals("chat.bubble", chatPayload.path("ui").get(0).path("node").path("type").asText());
+        assertEquals("direct", chatPayload.path("state").path("messages").get(0).path("channel").asText());
+
+        ToolResult group = executor.execute(cmd("chat.group.send", "g1", "{\"content\":\"hey\",\"speaker\":\"A\"}"));
+        assertTrue(group.success());
+        JsonNode groupPayload = mapper().readTree(group.payloadJson());
+        assertEquals("chat.bubble", groupPayload.path("ui").get(0).path("node").path("type").asText());
+        assertEquals("A", groupPayload.path("ui").get(0).path("node").path("props").path("speaker").asText());
+        assertEquals("group", groupPayload.path("state").path("groupMessages").get(0).path("channel").asText());
+
+        ToolResult packet = executor.execute(cmd("redpacket.send", "r1", "{\"amount\":20,\"note\":\"cake\"}"));
+        assertTrue(packet.success());
+        JsonNode packetPayload = mapper().readTree(packet.payloadJson());
+        assertEquals("redpacket-card", packetPayload.path("ui").get(0).path("node").path("type").asText());
+        assertEquals(80.0, packetPayload.path("state").path("wallet").asDouble());
+
+        Thread.sleep(1100);
+        ToolResult refused = executor.execute(cmd("redpacket.send", "r2", "{\"amount\":1000}"));
+        assertEquals("PRECONDITION_FAILED", refused.code());
+        assertEquals(80.0, mapper().readTree(state.load(new SessionRef("sess-1", "work-a")).payloadJson()).path("wallet").asDouble());
     }
 
     @Test

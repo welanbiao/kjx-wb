@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppShell } from "@/components/product/AppShell";
 import { ErrorBanner, StatusBanner, SuccessBanner } from "@/components/product/Banner";
 import { Button } from "@/components/product/Button";
-import { Field, SelectInput, TextArea, TextInput } from "@/components/product/Field";
+import { Field, SelectInput, TextInput } from "@/components/product/Field";
 import { QuotaStrip } from "@/components/product/QuotaStrip";
 import { EmptyState, LoadingState } from "@/components/product/States";
 import { clientApi, isMockToolsEnabled } from "@/lib/client-api";
@@ -14,13 +14,16 @@ import { COPY } from "@/lib/copy";
 import { isApiError } from "@/lib/errors";
 import { bindingStatusLabel, bindStatusNumberLabel, formatApiTime, memberStatusLabel } from "@/lib/format";
 import { useLoadOnMount } from "@/lib/load";
-import type { AccountProfile, BindingStatusData, HostOption, MemberSnapshot } from "@/lib/types";
+import { runtimeApi } from "@/runtime/api";
+import type { AccountProfile, BindingStatusData, DeviceItem, HostOption, MemberSnapshot } from "@/lib/types";
 
 type MePayload = {
   profile: AccountProfile;
   binding: BindingStatusData;
   member: MemberSnapshot | null;
   hosts: HostOption[];
+  devices: DeviceItem[];
+  breakupProgress: string | null;
 };
 
 export default function MePage() {
@@ -29,17 +32,32 @@ export default function MePage() {
   const [actionError, setActionError] = useState<unknown>();
   const { state, reload } = useLoadOnMount(async () => {
     try {
-      const [profileRes, bindingRes, memberRes, hostsRes] = await Promise.all([
+      const [profileRes, bindingRes, memberRes, hostsRes, devicesRes] = await Promise.all([
         clientApi.profile(),
         clientApi.binding(),
         clientApi.memberProfile(),
         clientApi.hosts(),
+        clientApi.devices(),
       ]);
+      let breakupProgress: string | null = null;
+      try {
+        const entitlements = await clientApi.entitlements();
+        const unlocked = entitlements.data.list.some((item) => item.workCode === "breakup-editor");
+        if (unlocked) {
+          const sessions = await runtimeApi.listSessions("breakup-editor");
+          const full = sessions.data.find((item) => item.status === "ACTIVE" && !item.trial);
+          breakupProgress = full ? `已解锁 · 阶段 ${full.stage}` : "已解锁 · 尚未进入完整版";
+        }
+      } catch {
+        breakupProgress = null;
+      }
       const payload: MePayload = {
         profile: profileRes.data,
         binding: bindingRes.data,
         member: memberRes.data,
         hosts: hostsRes.data,
+        devices: devicesRes.data,
+        breakupProgress,
       };
       return payload;
     } catch (err) {
@@ -77,14 +95,7 @@ export default function MePage() {
               <div className="kjx-grid">
                 <article className="kjx-card">
                   <h2>{COPY.account}</h2>
-                  <NicknameForm
-                    nickname={data.profile.nickname}
-                    onSaved={async (message) => {
-                      setSuccess(message);
-                      await reload();
-                    }}
-                    onError={setActionError}
-                  />
+                  <p>{data.profile.nickname || "未设置昵称"}</p>
                   <p className="kjx-hint">{data.profile.phoneMask}</p>
                   <p className="kjx-hint">绑定 {bindStatusNumberLabel(data.profile.bindStatus)}</p>
                   <p className="kjx-hint">创建时间 {formatApiTime(data.profile.createTime)}</p>
@@ -93,9 +104,17 @@ export default function MePage() {
                       账号注销中{data.profile.cancelApplyAt ? ` · 申请于 ${formatApiTime(data.profile.cancelApplyAt)}` : ""}
                     </StatusBanner>
                   ) : null}
-                  <p className="kjx-hint">
-                    <Link href="/me/security">{COPY.security}</Link>
-                  </p>
+                  <BindingPanel
+                    binding={data.binding}
+                    hosts={data.hosts}
+                    onChanged={async (message) => {
+                      setSuccess(message);
+                      setActionError(undefined);
+                      await reload();
+                    }}
+                    onError={setActionError}
+                    onRefresh={() => void reload()}
+                  />
                 </article>
                 <article className="kjx-card">
                   <h2>{COPY.member}</h2>
@@ -121,23 +140,37 @@ export default function MePage() {
                       {data.member.status === "EXPIRED" ? <p className="kjx-hint">{COPY.expiredHint}</p> : null}
                       {data.member.status === "NOT_STARTED" ? <p className="kjx-hint">{COPY.notStartedHint}</p> : null}
                       <QuotaStrip member={data.member} />
+                      {data.breakupProgress ? (
+                        <p className="kjx-hint">
+                          分手结局修改器 {data.breakupProgress} ·{" "}
+                          <Link href="/works/breakup-editor">进入</Link>
+                        </p>
+                      ) : null}
                     </>
                   ) : (
                     <EmptyState title="尚未同步会员信息" detail="绑定成功后由接口返回，不在前端计算。" />
                   )}
                 </article>
               </div>
-              <BindingPanel
-                binding={data.binding}
-                hosts={data.hosts}
-                onChanged={async (message) => {
-                  setSuccess(message);
-                  setActionError(undefined);
-                  await reload();
-                }}
-                onError={setActionError}
-                onRefresh={() => void reload()}
-              />
+              <article className="kjx-card kjx-pair-card">
+                <h2>{COPY.devices}</h2>
+                <DeviceList
+                  devices={data.devices}
+                  onChanged={async (message) => {
+                    setSuccess(message);
+                    setActionError(undefined);
+                    await reload();
+                  }}
+                  onError={setActionError}
+                />
+                <SessionPane
+                  onDone={async (message) => {
+                    setSuccess(message);
+                    setActionError(undefined);
+                  }}
+                  onError={setActionError}
+                />
+              </article>
             </>
           ) : null}
         </div>
@@ -146,41 +179,83 @@ export default function MePage() {
   );
 }
 
-function NicknameForm({
-  nickname,
-  onSaved,
+function DeviceList({
+  devices,
+  onChanged,
   onError,
 }: {
-  nickname: string | null;
-  onSaved: (message: string) => Promise<void>;
+  devices: DeviceItem[];
+  onChanged: (message: string) => Promise<void>;
   onError: (error: unknown) => void;
 }) {
-  const [value, setValue] = useState(nickname ?? "");
-  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setSaving(true);
+  async function remove(id: number) {
+    setBusyId(id);
     onError(undefined);
     try {
-      await clientApi.updateProfile({ nickname: value });
-      await onSaved("昵称已更新");
+      await clientApi.deleteDevice(id);
+      await onChanged("设备已下线");
     } catch (err) {
       onError(err);
     } finally {
-      setSaving(false);
+      setBusyId(null);
     }
   }
 
   return (
-    <form className="kjx-form" onSubmit={onSubmit}>
-      <Field id="me-nickname" label={COPY.nickname}>
-        <TextInput id="me-nickname" maxLength={64} value={value} onChange={(event) => setValue(event.target.value)} />
-      </Field>
-      <Button type="submit" variant="ghost" loading={saving} disabled={!value.trim()}>
-        {COPY.nicknameSave}
+    <div className="kjx-device-scroll">
+      {devices.length === 0 ? <EmptyState title="暂无设备记录" /> : null}
+      <ul className="kjx-form">
+        {devices.map((device) => (
+          <li key={device.id}>
+            <p>
+              {device.deviceName || device.deviceId}
+              {device.current ? ` · ${COPY.currentDevice}` : ""}
+            </p>
+            <p className="kjx-hint">
+              {device.platform ?? "web"} · {formatApiTime(device.lastActiveAt)}
+            </p>
+            <Button variant="ghost" loading={busyId === device.id} onClick={() => void remove(device.id)}>
+              {COPY.removeDevice}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SessionPane({
+  onDone,
+  onError,
+}: {
+  onDone: (message: string) => Promise<void>;
+  onError: (error: unknown) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    onError(undefined);
+    try {
+      await clientApi.refresh();
+      await onDone("会话已刷新");
+    } catch (err) {
+      onError(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="kjx-session-refresh">
+      <h2>{COPY.refreshSession}</h2>
+      <p className="kjx-hint">令牌由 BFF 写入 HttpOnly Cookie，页面看不到 token。</p>
+      <Button onClick={() => void refresh()} loading={loading}>
+        {COPY.refreshSession}
       </Button>
-    </form>
+    </div>
   );
 }
 
@@ -203,9 +278,6 @@ function BindingPanel({
   const [claimMonths, setClaimMonths] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [approving, setApproving] = useState(false);
-  const [appealType, setAppealType] = useState<"CHANGE_DOUYIN" | "WRONG_BIND" | "OTHER">("OTHER");
-  const [appealContent, setAppealContent] = useState("");
-  const [appealing, setAppealing] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -239,22 +311,8 @@ function BindingPanel({
     }
   }
 
-  async function submitAppeal() {
-    setAppealing(true);
-    onError(undefined);
-    try {
-      await clientApi.appeal({ appealType, content: appealContent });
-      await onChanged("申诉已提交");
-      setAppealContent("");
-    } catch (err) {
-      onError(err);
-    } finally {
-      setAppealing(false);
-    }
-  }
-
   return (
-    <article className="kjx-card" style={{ marginTop: "1rem" }}>
+    <div className="kjx-bind-block">
       <h2>{COPY.binding}</h2>
       <p className="kjx-hint">
         当前状态 {bindingStatusLabel(binding.status)}
@@ -328,28 +386,6 @@ function BindingPanel({
         <p className="kjx-hint">已绑定。额度与状态见上方会员信息，均来自接口字段。</p>
       ) : null}
       {binding.status === "UNBINDING" ? <StatusBanner>{COPY.unbinding}</StatusBanner> : null}
-      <div className="kjx-form" style={{ marginTop: "1rem" }}>
-        <Field id="appeal-type" label={COPY.appealType}>
-          <SelectInput
-            id="appeal-type"
-            value={appealType}
-            onChange={(event) => setAppealType(event.target.value as "CHANGE_DOUYIN" | "WRONG_BIND" | "OTHER")}
-          >
-            <option value="CHANGE_DOUYIN">更换抖音号</option>
-            <option value="WRONG_BIND">绑定有误</option>
-            <option value="OTHER">其他</option>
-          </SelectInput>
-        </Field>
-        <Field id="appeal-content" label={COPY.appeal}>
-          <TextArea id="appeal-content" value={appealContent} onChange={(event) => setAppealContent(event.target.value)} />
-        </Field>
-        <Button variant="ghost" onClick={() => void submitAppeal()} loading={appealing} disabled={!appealContent}>
-          {COPY.appeal}
-        </Button>
-      </div>
-      <p className="kjx-hint">
-        也可前往 <Link href="/unlocks">{COPY.unlocks}</Link> 查看已购作品。
-      </p>
-    </article>
+    </div>
   );
 }

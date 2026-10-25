@@ -135,7 +135,7 @@ public final class JdbcBillingService implements PlatformBilling {
                     command.idempotencyKey());
             jdbc.update("UPDATE kjx_balance_hold SET status = 'SETTLED' WHERE id = ? AND status = 'OPEN'", hold.id());
             Long ledgerId = findLedger(command.idempotencyKey());
-            emit("ledger", String.valueOf(ledgerId), "billing.settled", command.idempotencyKey(), hold.memberId(), command.actual());
+            emit("billing", String.valueOf(ledgerId), "billing.settled", command.idempotencyKey(), hold.memberId(), command.actual());
             audit("AI_CHARGE", "OUT", hold.memberId(), command.actual(), command.idempotencyKey(), command.actor());
             afterCommit(command.idempotencyKey());
             return ledgerId;

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiMode, dispatchBff } from "@/lib/bff/dispatch";
+import { stripUpstreamHeaders, upstreamContentType } from "@/lib/bff/headers";
 import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE } from "@/lib/session";
 import { buildSliderTrackAtPercentage } from "@/lib/captcha/track";
 import type { CaptchaChallenge } from "@/lib/captcha/types";
@@ -170,6 +171,14 @@ describe("BFF session and CSRF", () => {
 });
 
 describe("live BFF safety", () => {
+  it("rewrites browser text/plain JSON bodies before they reach Spring", () => {
+    expect(upstreamContentType("text/plain;charset=UTF-8", "POST")).toBe("application/json");
+    expect(upstreamContentType(null, "POST")).toBe("application/json");
+    expect(upstreamContentType("application/json", "POST")).toBe("application/json");
+    const headers = stripUpstreamHeaders(new Headers({ "Content-Type": "application/json" }), "rid-1");
+    expect(headers.get("Content-Type")).toBe("application/json; charset=utf-8");
+  });
+
   it("defaults production to live instead of silently enabling Mock", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(apiMode()).toBe("live");
@@ -284,6 +293,23 @@ describe("mock member journey", () => {
     expect(unlockData.alreadyUnlocked).toBe(false);
     expect(unlockData.unlockedCount).toBe(1);
     expect(unlockData.remainCount).toBe(13);
+  });
+
+  it("marks breakup-editor unlocked after page purchase and keeps the Chinese title", async () => {
+    const jar = await bootstrap();
+    const session = await registerPhone("13800138011", jar);
+    const bought = await call(
+      "/app/works/breakup-editor/purchase",
+      { method: "POST", headers: mutatingHeaders(session, "buy-breakup-1") },
+      session,
+    );
+    expect(bought.json.code).toBe(0);
+    const detail = await call("/app/works/breakup-editor", { method: "GET", headers: mutatingHeaders(bought.jar) }, bought.jar);
+    expect(detail.json.code).toBe(0);
+    const work = detail.json.data as { name: string; unlocked: boolean };
+    expect(work.unlocked).toBe(true);
+    expect(work.name).toBe("分手结局修改器");
+    expect(work.name).not.toMatch(/\?{2,}/);
   });
 
   it("returns the five binding statuses from API fields", async () => {

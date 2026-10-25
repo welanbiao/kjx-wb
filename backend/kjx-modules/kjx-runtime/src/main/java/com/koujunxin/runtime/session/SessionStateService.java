@@ -36,12 +36,21 @@ public final class SessionStateService implements SessionStateQueryPort, Session
     }
 
     public SessionRecord create(long accountId, String workCode) {
+        return create(accountId, workCode, INITIAL_PAYLOAD, "1");
+    }
+
+    public SessionRecord create(long accountId, String workCode, String payloadJson, String stage) {
         WorkRuntimeManifest manifest = works.require(workCode);
         CanonicalJson.requireSchema(manifest.schemaVersion());
         Instant now = Instant.now();
         String sessionId = UUID.randomUUID().toString().replace("-", "");
-        String stage = "1";
-        String checksum = CanonicalJson.checksum(manifest.schemaVersion(), manifest.contentVersion(), stage, INITIAL_PAYLOAD);
+        if (payloadJson == null || payloadJson.isBlank()) {
+            payloadJson = INITIAL_PAYLOAD;
+        }
+        if (stage == null || stage.isBlank()) {
+            stage = "1";
+        }
+        String checksum = CanonicalJson.checksum(manifest.schemaVersion(), manifest.contentVersion(), stage, payloadJson);
         SessionRecord row = new SessionRecord(
                 0L,
                 sessionId,
@@ -52,7 +61,7 @@ public final class SessionStateService implements SessionStateQueryPort, Session
                 stage,
                 manifest.schemaVersion(),
                 manifest.contentVersion(),
-                INITIAL_PAYLOAD,
+                payloadJson,
                 checksum,
                 ACTIVE,
                 0,

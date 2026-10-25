@@ -1,1 +1,2 @@
 com.koujunxin.runtime.config.RuntimeAutoConfiguration
+com.koujunxin.runtime.config.RuntimeWebAutoConfiguration

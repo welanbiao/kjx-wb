@@ -133,3 +133,23 @@ codes:
     message: 重复请求与首次参数不一致
     retryable: false
     description: 相同 scene/ref_id/idempotency_key 但 request_hash 不同。
+
+  INSUFFICIENT_BALANCE:
+    code: 1201
+    httpStatus: 402
+    name: INSUFFICIENT_BALANCE
+    message: 余额不足
+    retryable: false
+    description: |
+      账本派生可用余额不足以完成预冻结或扣费。
+      HTTP 402 为协议映射，业务 code 仍为 1201。见 ADR-002。
+
+  BYOK_FAILED:
+    code: 1202
+    httpStatus: 502
+    name: BYOK_FAILED
+    message: 上游调用失败，未扣平台余额
+    retryable: true
+    description: |
+      BYOK 上游调用失败。不得回退扣平台余额。
+      HTTP 502 为协议映射，业务 code 仍为 1202。见 ADR-002。

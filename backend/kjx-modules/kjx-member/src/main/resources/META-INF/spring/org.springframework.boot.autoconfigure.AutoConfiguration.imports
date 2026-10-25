@@ -1,2 +1,3 @@
 com.koujunxin.member.config.MemberAutoConfiguration
 com.koujunxin.member.config.MemberUnlockAutoConfiguration
+com.koujunxin.member.config.MemberWebAutoConfiguration

@@ -5,16 +5,37 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/product/Banner";
+import { ADMIN_SESSION_KEY, hasAdminDeskSession } from "@/lib/admin-presence";
 import { clientApi } from "@/lib/client-api";
 import { COPY, PRODUCT_NAME } from "@/lib/copy";
-import { isApiError } from "@/lib/errors";
-import type { AccountProfile } from "@/lib/types";
+import { loginHref, useSessionPresence } from "@/lib/session-presence";
 
-const NAV = [
-  { href: "/works", label: COPY.works },
-  { href: "/unlocks", label: COPY.unlocks },
-  { href: "/me", label: COPY.profile },
+const PATH = [
+  { key: "home", href: "/", label: COPY.home, gated: false },
+  { key: "works", href: "/works", label: COPY.works, gated: true },
+  { key: "profile", href: "/me", label: COPY.profile, gated: true },
+  { key: "settings", href: "/settings", label: "设置", gated: true },
+  { key: "help", href: "/help", label: "帮助", gated: true },
 ] as const;
+
+function currentStep(pathname: string): (typeof PATH)[number]["key"] | null {
+  if (pathname === "/") {
+    return "home";
+  }
+  if (pathname.startsWith("/works") || pathname.startsWith("/runtime") || pathname.startsWith("/play")) {
+    return "works";
+  }
+  if (pathname.startsWith("/me")) {
+    return "profile";
+  }
+  if (pathname.startsWith("/settings")) {
+    return "settings";
+  }
+  if (pathname.startsWith("/help")) {
+    return "help";
+  }
+  return null;
+}
 
 type Props = {
   children: React.ReactNode;
@@ -24,25 +45,15 @@ type Props = {
 export function AppShell({ children, variant = "public" }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const [profile, setProfile] = useState<AccountProfile | null>(null);
-  const [authError, setAuthError] = useState<unknown>(null);
+  const { presence, profile, error: authError, setProfile, setPresence } = useSessionPresence(pathname);
+  const [logoutError, setLogoutError] = useState<unknown>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [adminDesk, setAdminDesk] = useState(false);
+  const step = currentStep(pathname);
 
   useEffect(() => {
+    setAdminDesk(hasAdminDeskSession(window.sessionStorage.getItem(ADMIN_SESSION_KEY)));
     void clientApi.csrf().catch(() => undefined);
-    void clientApi
-      .profile()
-      .then((res) => {
-        setProfile(res.data);
-        setAuthError(null);
-      })
-      .catch((error: unknown) => {
-        if (isApiError(error) && error.httpStatus === 401) {
-          setProfile(null);
-          return;
-        }
-        setAuthError(error);
-      });
   }, [pathname]);
 
   async function onLogout() {
@@ -50,9 +61,10 @@ export function AppShell({ children, variant = "public" }: Props) {
     try {
       await clientApi.logout();
       setProfile(null);
-      router.push("/login");
+      setPresence("guest");
+      router.push("/");
     } catch (error) {
-      setAuthError(error);
+      setLogoutError(error);
     } finally {
       setLoggingOut(false);
     }
@@ -60,7 +72,6 @@ export function AppShell({ children, variant = "public" }: Props) {
 
   return (
     <div className={`kjx-app ${variant === "task" ? "kjx-task" : ""}`.trim()}>
-      {variant === "public" ? <div className="kjx-curtain" aria-hidden="true" /> : null}
       <a className="kjx-skip" href="#main">
         {COPY.skip}
       </a>
@@ -75,49 +86,64 @@ export function AppShell({ children, variant = "public" }: Props) {
           />
           <span>
             <strong>{PRODUCT_NAME}</strong>
-            <span className="kjx-hint">分幕通行证</span>
+            <span className="kjx-hint">{COPY.worldKicker}</span>
           </span>
         </Link>
-        <nav className="kjx-nav" aria-label="主导航">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} aria-current={pathname.startsWith(item.href) ? "page" : undefined}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="kjx-header-nav">
+          <nav aria-label="会员路径">
+            <ol className="kjx-path">
+              {PATH.map((item) => {
+                const href = presence === "guest" && item.gated ? loginHref(item.href) : item.href;
+                return (
+                  <li key={item.key}>
+                    <Link href={href} aria-current={step === item.key ? "step" : undefined}>
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+              {adminDesk ? (
+                <li>
+                  <a href="/admin/">管理</a>
+                </li>
+              ) : null}
+            </ol>
+          </nav>
+        </div>
         <div className="kjx-header-actions">
           {profile ? (
             <>
-              <Link className="kjx-btn kjx-btn-ghost" href="/me">
-                {profile.nickname || profile.phoneMask || COPY.profile}
-              </Link>
-              <Link className="kjx-btn kjx-btn-ghost" href="/me/security">
-                {COPY.security}
-              </Link>
+              <p className="kjx-session">
+                <Link className="kjx-session-name" href="/me">
+                  {profile.nickname || profile.phoneMask || COPY.profile}
+                </Link>
+              </p>
               <button type="button" className="kjx-btn kjx-btn-ghost" onClick={() => void onLogout()} disabled={loggingOut}>
                 {loggingOut ? "退出中…" : COPY.logout}
               </button>
             </>
-          ) : (
+          ) : presence === "guest" ? (
             <>
               <Link className="kjx-btn kjx-btn-ghost" href="/login">
-                {COPY.login}
+                {COPY.loginNow}
               </Link>
-              <Link className="kjx-btn" href="/register">
-                {COPY.register}
+              <Link className="kjx-btn kjx-btn-ghost" href="/register">
+                {COPY.registerNow}
               </Link>
             </>
-          )}
+          ) : null}
         </div>
       </header>
-      <main id="main">{children}</main>
-      {authError ? (
-        <div className="kjx-wrap" style={{ paddingBottom: "1rem" }}>
-          <ErrorBanner error={authError} />
-        </div>
-      ) : null}
+      <main id="main" className={variant === "task" ? "kjx-sheet" : "kjx-world-main"}>
+        {authError || logoutError ? (
+          <div className="kjx-wrap" style={{ paddingTop: "1rem" }}>
+            <ErrorBanner error={logoutError ?? authError} />
+          </div>
+        ) : null}
+        {children}
+      </main>
       <footer className="kjx-footer kjx-wrap">
-        <p>晴空海蓝 · 暖橙光 · 奶油米白</p>
+        <p>叩君芯 · {COPY.worldKicker}</p>
         <p className="kjx-hint">额度与会员状态以后端返回值为准，前端不换算月数或天数。</p>
       </footer>
     </div>

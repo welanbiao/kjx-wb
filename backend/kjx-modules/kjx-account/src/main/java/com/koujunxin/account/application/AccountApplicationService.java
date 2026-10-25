@@ -174,6 +174,16 @@ public class AccountApplicationService {
     }
 
     public AccountResults.LoginResult loginByPassword(String phone, String password, ClientContext ctx) {
+        return loginByPassword(phone, password, null, null, ctx);
+    }
+
+    public AccountResults.LoginResult loginByPassword(
+            String phone, String password, String captchaId, Map<String, Object> captchaData, ClientContext ctx) {
+        if (captchaId != null && !captchaId.isBlank()) {
+            if (captchaData == null || !captcha.verify(captchaId, captchaData)) {
+                throw AccountFailures.captchaInvalid();
+            }
+        }
         requirePhone(phone);
         AccountRecord account = loadForLogin(phone);
         if (!passwordHasher.matches(password, account.passwordHash())) {

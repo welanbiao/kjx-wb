@@ -2,7 +2,7 @@ import { CSRF_COOKIE, CSRF_HEADER, DEVICE_COOKIE, SESSION_COOKIE } from "@/lib/s
 import { createCsrfToken, csrfTokensMatch } from "@/lib/csrf";
 import { applyCookies, parseCookieHeader, serializeCookie } from "@/lib/bff/cookies";
 import { fail, newRequestId, ok } from "@/lib/bff/envelope";
-import { stripUpstreamHeaders } from "@/lib/bff/headers";
+import { stripUpstreamHeaders, upstreamContentType } from "@/lib/bff/headers";
 import { shouldStripToken, takeAuthToken } from "@/lib/bff/strip-token";
 import { accountFromToken, handleMock } from "@/lib/mock/handlers";
 
@@ -113,7 +113,7 @@ async function proxyLive(
   const target = `${origin}${pathname}${url.search}`;
   const headers = new Headers();
   headers.set("Accept", "application/json");
-  headers.set("Content-Type", request.headers.get("Content-Type") ?? "application/json");
+  headers.set("Content-Type", upstreamContentType(request.headers.get("Content-Type"), request.method));
   headers.set("X-Request-Id", requestId);
   headers.set("X-Client-Version", process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0");
   headers.set("X-Device-Id", extras.device);
@@ -144,9 +144,9 @@ async function proxyLive(
   const upstreamHeaders = stripUpstreamHeaders(upstream.headers, requestId);
   const contentType = upstream.headers.get("Content-Type") ?? "";
   if (!contentType.includes("json")) {
-    const text = await upstream.text();
+    const body = await upstream.arrayBuffer();
     return applyCookies(
-      new Response(text, {
+      new Response(body, {
         status: upstream.status,
         headers: upstreamHeaders,
       }),

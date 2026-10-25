@@ -28,13 +28,16 @@
 | V626 | UI 白名单种子 |
 | V627 | builtin 种子 |
 | V628 | 组合样例 `metric.adjust` |
+| V629 | 共用 L2：`persona.assemble`、`chat.group.send`；`chat.bubble` 增加可选 `speaker` |
 
-V629 未用。WP-40/WP-42 请避开 V620–V629。
+WP-40/WP-42 请避开 V620–V629。
+
+共用 L2 工具（不绑定某一作品）：`persona.assemble` 只把人设拼进 `payload.prompt.persona`（不进 UI）；`chat.send` 追加 `payload.messages` 与 `chat.bubble`；`chat.group.send` 追加 `payload.groupMessages` 与带 `speaker` 的 `chat.bubble`；`redpacket.send` 余额不足时 `PRECONDITION_FAILED` 且不改钱包。
 
 ## 待主 Agent 接线
 
 1. `kjx-server` 依赖 `kjx-tool`，并提供 `EntitlementAccessPort`（WP-13 已有）、`SessionAuthorizationPort` / `SessionStateQueryPort` / `SessionStateCommandPort`（WP-42）。无这些 Bean 时本包不创建 `ToolExecutionPort`。
-2. 确认 Flyway 为 `classpath:db/migration`，能扫到 V620–V628。
+2. 确认 Flyway 为 `classpath:db/migration`，能扫到 V620–V629。
 3. `ToolAutoConfiguration` 已写入 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
 4. `SessionStateCommandPort.apply` 已识别 `type=TOOL_PATCH`，把 `payloadJson` 整份替换为会话状态快照。
 5. 登录态由调用方保证 `accountId > 0`；本包不再查账号表。

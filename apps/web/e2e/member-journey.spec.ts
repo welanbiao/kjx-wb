@@ -42,6 +42,7 @@ test("register → captcha → bind → mock review → refresh → unlock", asy
   await page.goto("/register");
   await page.getByRole("textbox", { name: "手机号" }).fill(phone);
   await page.getByRole("textbox", { name: "密码" }).fill(PASSWORD);
+  await page.getByRole("button", { name: "图形验证" }).click();
   await expect(page.getByText("已完成图形验证")).toBeVisible();
   await page.getByRole("button", { name: "发送验证码" }).click();
   await expect(page.getByText("验证码已发送")).toBeVisible();
@@ -63,14 +64,14 @@ test("register → captcha → bind → mock review → refresh → unlock", asy
   await expect(page.getByText("剩余可解锁数")).toBeVisible();
 
   await page.goto("/works/breakup-editor");
-  await page.getByRole("button", { name: "解锁" }).click();
-  const dialog = page.getByRole("dialog", { name: "解锁二次确认" });
+  await page.getByRole("button", { name: "购买" }).click();
+  const dialog = page.getByRole("dialog", { name: "购买确认" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("前端不计算额度")).toBeVisible();
-  await dialog.getByRole("button", { name: "确认解锁" }).click();
+  await expect(dialog.getByText("不消耗解锁额度")).toBeVisible();
+  await dialog.getByRole("button", { name: "确认购买" }).click();
   await page.waitForURL("**/runtime/breakup-editor");
   await page.goto("/unlocks");
-  await expect(page.getByRole("heading", { name: "分手编辑部" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "分手结局修改器" })).toBeVisible();
   await expect(page.getByRole("link", { name: "进入" })).toBeVisible();
 
   const storage = await page.evaluate(() => ({
@@ -93,13 +94,15 @@ test("expired member can open purchased works but not unlock new ones", async ({
   await page.goto("/login");
   await page.getByRole("textbox", { name: "手机号" }).fill("13900139000");
   await page.getByRole("textbox", { name: "密码" }).fill(PASSWORD);
+  await page.getByRole("button", { name: "图形验证" }).click();
+  await expect(page.getByText("已完成图形验证")).toBeVisible();
   await page.getByRole("button", { name: "登录" }).click();
   await page.waitForURL("**/me");
   await expect(page.getByText("状态 已过期")).toBeVisible();
 
   await page.goto("/works/breakup-editor");
-  await expect(page.getByText("不能再解锁新作品")).toBeVisible();
-  await expect(page.getByRole("button", { name: "解锁" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "购买" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "解锁" })).toHaveCount(0);
 
   await page.goto("/unlocks");
   await expect(page.getByRole("heading", { name: "已下架剧场" })).toBeVisible();

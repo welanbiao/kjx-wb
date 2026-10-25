@@ -1,0 +1,390 @@
+# WP-42 运行时 HTTP 负载。字段来自 kjx-runtime 控制器与 RuntimeApplicationService 视图，不写入 errors.yaml。
+
+SessionStatus:
+  type: string
+  enum:
+    - ACTIVE
+    - ENDED
+
+HostMethod:
+  type: string
+  enum:
+    - ai.complete
+    - state.save
+    - state.load
+    - assets.sign
+    - events.emit
+    - events.schedule
+    - metrics.report
+    - user.profile
+    - tools.invoke
+
+StateMutationType:
+  type: string
+  enum:
+    - SET_STAGE
+    - PATCH
+    - REPLACE
+    - TOOL_PATCH
+    - END
+
+CreateSessionRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - workCode
+  properties:
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+
+StateMutation:
+  type: object
+  additionalProperties: false
+  required:
+    - type
+    - schemaVersion
+  properties:
+    type:
+      $ref: "#/StateMutationType"
+    schemaVersion:
+      type: string
+    payloadJson:
+      type: string
+      description: 中立 JSON 文本。缺省为 `{}`。
+
+CreateSaveRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    slot:
+      type: string
+      description: 存档槽。缺省 `auto`。
+    version:
+      type: integer
+      description: 乐观锁版本。缺省不校验。
+
+HostInvokeRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+    - nonce
+    - method
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    nonce:
+      type: string
+    iframeOrigin:
+      type: string
+      description: 缺省 `"null"`。
+    method:
+      $ref: "#/HostMethod"
+    payloadJson:
+      type: string
+      description: 中立 JSON 文本。缺省 `{}`。
+
+ToolsInvokeRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    nonce:
+      type: string
+      description: 非空时走宿主代理 `tools.invoke` 校验。
+    iframeOrigin:
+      type: string
+      description: 缺省 `"null"`。
+    payloadJson:
+      type: string
+      description: 中立 JSON 文本。缺省 `{}`。
+
+SessionSummary:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+    - form
+    - stage
+    - schemaVersion
+    - contentVersion
+    - checksum
+    - status
+    - version
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    form:
+      type: string
+    stage:
+      type: string
+    schemaVersion:
+      type: string
+    contentVersion:
+      type: string
+    checksum:
+      type: string
+    status:
+      $ref: "#/SessionStatus"
+    version:
+      type: integer
+
+SessionDetail:
+  allOf:
+    - $ref: "#/SessionSummary"
+    - type: object
+      required:
+        - payloadJson
+      properties:
+        payloadJson:
+          type: string
+          description: 会话状态 JSON 文本。
+
+SaveView:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+    - slot
+    - schemaVersion
+    - contentVersion
+    - stage
+    - checksum
+    - version
+    - stateJson
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    slot:
+      type: string
+    schemaVersion:
+      type: string
+    contentVersion:
+      type: string
+    stage:
+      type: string
+    checksum:
+      type: string
+    version:
+      type: integer
+    stateJson:
+      type: string
+
+StageView:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+    - form
+    - stage
+    - gated
+    - layoutJson
+    - tokensJson
+    - nodesJson
+    - assets
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    form:
+      type: string
+    stage:
+      type: string
+    gated:
+      type: boolean
+      description: true 时无权益，布局与节点为空壳，不抛 ENTITLEMENT_REQUIRED。
+    layoutJson:
+      type: string
+    tokensJson:
+      type: string
+    nodesJson:
+      type: string
+    assets:
+      type: object
+      additionalProperties:
+        type: string
+
+SandboxBootstrap:
+  type: object
+  additionalProperties: false
+  required:
+    - sessionId
+    - workCode
+    - form
+    - iframeSrc
+    - nonce
+    - origin
+    - sandbox
+    - methods
+    - expiresAt
+  properties:
+    sessionId:
+      type: string
+    workCode:
+      $ref: "../../schemas/common.yaml#/schemas/WorkCode"
+    form:
+      type: string
+    iframeSrc:
+      type: string
+    nonce:
+      type: string
+    origin:
+      type: string
+    sandbox:
+      type: string
+      description: iframe sandbox 属性。实现值为 `allow-scripts allow-forms`。
+    methods:
+      type: array
+      items:
+        $ref: "#/HostMethod"
+    expiresAt:
+      type: string
+
+HostInvokeResult:
+  type: object
+  additionalProperties: false
+  required:
+    - ok
+    - method
+    - payloadJson
+  properties:
+    ok:
+      type: boolean
+    method:
+      type: string
+    payloadJson:
+      type: string
+      description: 已去掉 token/Cookie 字段的 JSON 文本。
+
+RuntimeError:
+  type: object
+  required:
+    - code
+    - data
+    - msg
+    - requestId
+  properties:
+    code:
+      type: integer
+      description: 与 HTTP 状态相同。运行时失败不使用 contracts/errors.yaml 业务码。
+    msg:
+      type: string
+    requestId:
+      $ref: "../../schemas/common.yaml#/schemas/RequestId"
+    data:
+      type: object
+      additionalProperties: false
+      required:
+        - errorName
+      properties:
+        errorName:
+          type: string
+          description: WP-42 错误名。未写入 contracts/errors.yaml。
+
+SessionDetailResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SessionDetail"
+
+SessionSummaryResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SessionSummary"
+
+SessionListResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/SessionSummary"
+
+SaveViewResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SaveView"
+
+SaveListResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/SaveView"
+
+StageResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/StageView"
+
+SandboxResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/SandboxBootstrap"
+
+HostInvokeResponse:
+  allOf:
+    - $ref: "../../schemas/common.yaml#/schemas/ApiSuccess"
+    - type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/HostInvokeResult"

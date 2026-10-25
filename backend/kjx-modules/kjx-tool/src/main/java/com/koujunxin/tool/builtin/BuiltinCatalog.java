@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.koujunxin.tool.api.ToolFailure;
 import com.koujunxin.tool.state.WorkingState;
@@ -31,7 +32,9 @@ public final class BuiltinCatalog {
         map.put("session.end", this::sessionEnd);
         map.put("wallet.adjust", this::walletAdjust);
         map.put("moments.post", this::momentsPost);
+        map.put("persona.assemble", this::personaAssemble);
         map.put("chat.send", this::chatSend);
+        map.put("chat.group.send", this::chatGroupSend);
         map.put("redpacket.send", this::redpacketSend);
         map.put("memo.write", this::memoWrite);
         map.put("music.play", this::musicPlay);
@@ -121,20 +124,84 @@ public final class BuiltinCatalog {
         state.hint("朋友圈已发布，可以自然带过");
     }
 
+    private void personaAssemble(JsonNode args, WorkingState state) {
+        JsonNode persona = state.payload().get("persona");
+        if (persona == null || !persona.isObject()) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "persona is required");
+        }
+        String outer = requiredPersonaField(persona, "outer");
+        String inner = requiredPersonaField(persona, "inner");
+        String origin = requiredPersonaField(persona, "origin");
+        String speech = requiredPersonaField(persona, "speech");
+        StringBuilder fragment = new StringBuilder();
+        fragment.append("outer: ").append(outer).append('\n');
+        fragment.append("inner: ").append(inner).append('\n');
+        fragment.append("origin: ").append(origin).append('\n');
+        fragment.append("speech: ").append(speech);
+        appendOptionalPersonaField(fragment, persona, "triggers");
+        appendOptionalPersonaField(fragment, persona, "redlines");
+        ObjectNode prompt = mapper.createObjectNode();
+        prompt.put("persona", fragment.toString());
+        ObjectNode patch = mapper.createObjectNode();
+        patch.set("prompt", prompt);
+        state.patch(patch);
+        state.hint("人设片段仅供模型使用，不要向玩家展示");
+    }
+
     private void chatSend(JsonNode args, WorkingState state) {
+        String content = args.path("content").asText("");
+        if (content.isBlank()) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "chat content is required");
+        }
+        ObjectNode line = mapper.createObjectNode();
+        line.put("channel", "direct");
+        line.put("role", "npc");
+        line.put("text", content);
+        ensureArray(state, "messages").add(line);
+        state.touch();
         ObjectNode node = mapper.createObjectNode();
         node.put("type", "chat.bubble");
         ObjectNode props = mapper.createObjectNode();
-        props.put("text", args.path("content").asText());
+        props.put("text", content);
         props.put("role", "npc");
         node.set("props", props);
         state.addUi("chat.messages", "append", node, null);
         state.hint("消息已发出");
     }
 
+    private void chatGroupSend(JsonNode args, WorkingState state) {
+        String content = args.path("content").asText("");
+        String speaker = args.path("speaker").asText("");
+        if (content.isBlank() || speaker.isBlank()) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "group chat content and speaker are required");
+        }
+        ObjectNode line = mapper.createObjectNode();
+        line.put("channel", "group");
+        line.put("speaker", speaker);
+        line.put("text", content);
+        ensureArray(state, "groupMessages").add(line);
+        state.touch();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "chat.bubble");
+        ObjectNode props = mapper.createObjectNode();
+        props.put("text", content);
+        props.put("role", "npc");
+        props.put("speaker", speaker);
+        node.set("props", props);
+        state.addUi("chat.messages", "append", node, null);
+        state.hint("群聊消息已发出");
+    }
+
     private void redpacketSend(JsonNode args, WorkingState state) {
-        double amount = args.path("amount").asDouble();
+        JsonNode amountNode = args.get("amount");
+        if (amountNode == null || !amountNode.isNumber() || amountNode.asDouble() <= 0) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "redpacket amount must be positive");
+        }
+        double amount = amountNode.asDouble();
         double wallet = state.payload().path("wallet").isNumber() ? state.payload().get("wallet").asDouble() : 0.0;
+        if (amount > wallet) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "wallet cannot cover redpacket amount");
+        }
         double next = wallet - amount;
         state.payload().put("wallet", next);
         int count = state.payload().path("redpacketCount").asInt(0) + 1;
@@ -187,5 +254,30 @@ public final class BuiltinCatalog {
         state.payload().put("playingTrackId", args.path("trackId").asText());
         state.touch();
         state.hint("已开始播放，不要朗读曲库清单");
+    }
+
+    private ArrayNode ensureArray(WorkingState state, String field) {
+        JsonNode existing = state.payload().get(field);
+        if (existing instanceof ArrayNode arrayNode) {
+            return arrayNode;
+        }
+        ArrayNode created = mapper.createArrayNode();
+        state.payload().set(field, created);
+        return created;
+    }
+
+    private static String requiredPersonaField(JsonNode persona, String field) {
+        JsonNode value = persona.get(field);
+        if (value == null || !value.isTextual() || value.asText().isBlank()) {
+            throw ToolFailure.of("PRECONDITION_FAILED", "persona." + field + " is required");
+        }
+        return value.asText();
+    }
+
+    private static void appendOptionalPersonaField(StringBuilder fragment, JsonNode persona, String field) {
+        JsonNode value = persona.get(field);
+        if (value != null && value.isTextual() && !value.asText().isBlank()) {
+            fragment.append('\n').append(field).append(": ").append(value.asText());
+        }
     }
 }

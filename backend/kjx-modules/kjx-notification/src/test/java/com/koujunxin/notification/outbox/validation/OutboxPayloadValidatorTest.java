@@ -194,6 +194,49 @@ class OutboxPayloadValidatorTest {
                 .hasMessageContaining("variables.nested.access_token");
     }
 
+    @Test
+    void acceptsBillingAndPaymentEvents() {
+        Map<String, Object> billingFrozen = validator.validate(
+                OutboxAppendCommand.of("billing", "100", "billing.frozen", billingPayload()));
+        assertThat(billingFrozen.get("aggregateType")).isEqualTo("billing");
+        assertThat(billingFrozen.get("eventType")).isEqualTo("billing.frozen");
+
+        Map<String, Object> billingSettled = validator.validate(
+                OutboxAppendCommand.of("billing", "100", "billing.settled", billingPayload()));
+        assertThat(billingSettled.get("eventType")).isEqualTo("billing.settled");
+
+        Map<String, Object> billingReleased = validator.validate(
+                OutboxAppendCommand.of("billing", "100", "billing.released", billingPayload()));
+        assertThat(billingReleased.get("eventType")).isEqualTo("billing.released");
+
+        Map<String, Object> paymentPaid = validator.validate(
+                OutboxAppendCommand.of("payment", "out-1", "payment.paid", billingPayload()));
+        assertThat(paymentPaid.get("aggregateType")).isEqualTo("payment");
+        assertThat(paymentPaid.get("eventType")).isEqualTo("payment.paid");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nested = (Map<String, Object>) paymentPaid.get("payload");
+        assertThat(nested.get("schemaVersion")).isEqualTo("1.0");
+        assertThat(nested.get("memberId")).isEqualTo(12L);
+        assertThat(nested.get("amount")).isEqualTo("10.00");
+    }
+
+    @Test
+    void rejectsSensitiveFieldOnBillingAndPaymentEvents() {
+        Map<String, Object> billingPayload = billingPayload();
+        billingPayload.put("token", "abc");
+        assertThatThrownBy(() -> validator.validate(
+                OutboxAppendCommand.of("billing", "100", "billing.frozen", billingPayload)))
+                .isInstanceOf(OutboxValidationException.class)
+                .hasMessageContaining("sensitive");
+
+        Map<String, Object> paymentPayload = billingPayload();
+        paymentPayload.put("api_key", "sk-test");
+        assertThatThrownBy(() -> validator.validate(
+                OutboxAppendCommand.of("payment", "out-1", "payment.paid", paymentPayload)))
+                .isInstanceOf(OutboxValidationException.class)
+                .hasMessageContaining("sensitive");
+    }
+
     private static Map<String, Object> notificationPayload() {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("schemaVersion", "1.0");
@@ -201,6 +244,14 @@ class OutboxPayloadValidatorTest {
         payload.put("channels", List.of("INBOX"));
         payload.put("accountId", 12);
         payload.put("title", "绑定通过");
+        return payload;
+    }
+
+    private static Map<String, Object> billingPayload() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("schemaVersion", "1.0");
+        payload.put("memberId", 12L);
+        payload.put("amount", "10.00");
         return payload;
     }
 }

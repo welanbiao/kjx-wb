@@ -16,6 +16,7 @@ import type {
   UnlockResult,
   WorkDetail,
   WorkSummary,
+  AiSettingsView,
 } from "@/lib/types";
 
 function idemKey(): string {
@@ -25,7 +26,12 @@ function idemKey(): string {
 export const clientApi = {
   csrf: () => apiFetch<{ csrfToken: string }>("/app/auth/csrf"),
   getCaptcha: (type: "SLIDER" = "SLIDER") =>
-    apiFetch<CaptchaChallenge>(`/app/auth/captcha?type=${encodeURIComponent(type)}`),
+    apiFetch<CaptchaChallenge>(`/app/auth/captcha?type=${encodeURIComponent(type)}&t=${Date.now()}`),
+  checkCaptcha: (body: FrozenCaptcha) =>
+    apiFetch<{ passed: boolean }>("/app/auth/captcha/check", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   sendCode: (body: {
     phone: string;
     scene: "register" | "login" | "reset_pwd" | "cancel";
@@ -43,7 +49,12 @@ export const clientApi = {
       body: JSON.stringify(body),
       idempotencyKey: idemKey(),
     }),
-  login: (body: { phone: string; password: string }) =>
+  login: (body: {
+    phone: string;
+    password: string;
+    captchaId?: string;
+    captchaData?: FrozenCaptcha["captchaData"];
+  }) =>
     apiFetch<LoginData>("/app/auth/login", {
       method: "POST",
       body: JSON.stringify(body),
@@ -114,6 +125,17 @@ export const clientApi = {
     apiFetch<UnlockResult>(`/app/works/${workCode}/unlock`, {
       method: "POST",
       idempotencyKey: idemKey(),
+    }),
+  purchase: (workCode: string) =>
+    apiFetch<UnlockResult>(`/app/works/${workCode}/purchase`, {
+      method: "POST",
+      idempotencyKey: idemKey(),
+    }),
+  aiSettings: () => apiFetch<AiSettingsView>("/app/account/ai-settings"),
+  saveAiSettings: (body: { baseUrl: string; apiKey: string; model: string }) =>
+    apiFetch<AiSettingsView>("/app/account/ai-settings", {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   entitlements: (query?: { pageNo?: number; pageSize?: number }) => {
     const params = new URLSearchParams();

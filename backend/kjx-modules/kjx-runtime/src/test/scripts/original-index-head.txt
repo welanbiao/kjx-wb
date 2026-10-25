@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>分手结局修改器 v2（给产品）</title>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#1a1614}
+    .screen{display:none!important}
+    .screen.active{display:flex!important}
+  </style>
+  <link rel="stylesheet" href="css/fonts.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/v4.css" />
+</head>
+<body>
+<script>window.__PM_PACK__=true;</script>
+  <audio id="prologue-bgm-audio" preload="none" loop hidden></audio>
+  <div id="app">
+    <div class="phone-shell">
+    <div class="phone" id="phone">
+      <img class="wall2-device-chrome" src="assets/wall2/device-chrome-full.svg" alt="" draggable="false" decoding="async" aria-hidden="true" />
+      <div class="phone-bezel">
+        <div class="status-bar" id="status-bar">
+          <span class="status-time" id="status-time" data-ui="状态栏时间">9:41</span>
+          <button class="dyn-island idle" id="dyn-island" type="button" tabindex="-1" data-ui="动态岛">
+            <img class="dyn-island-figma" src="assets/home/figma-dynamic-island.svg" width="111" height="31" alt="" draggable="false" aria-hidden="true" />
+            <span class="dyn-lenses" aria-hidden="true"><i class="cam"></i><i class="dot"></i></span>
+          </button>
+          <span class="status-icons" aria-hidden="true" data-ui="状态栏信号电量">
+            <img class="status-icons-figma" src="assets/home/figma-status-icons-right.svg" width="75" height="13" alt="" draggable="false" />
+          </span>
+        </div>
+        <div class="toast-stack" id="toast-stack"></div>
+        <div class="processing" id="processing">
+          <div class="processing-card">
+            <div class="processing-spin"></div>
+            <span id="processing-label">请稍候</span>
+          </div>
+        </div>
+        <div class="ripple-mask" id="ripple-mask" hidden>
+          <div class="ripple-card">
+            <div class="ripple-kicker">世界线在颤</div>
+            <p id="ripple-text"></p>
+            <button type="button" class="btn primary" id="ripple-ok">继续</button>
+          </div>
+        </div>
+        <div class="phone-viewport">
+        <div class="app-chrome" id="app-chrome" hidden>
+          <div class="chrome-row">
+            <button class="world-chip" id="world-chip" type="button">回到原故事</button>
+            <span class="demo-badge" id="demo-badge" hidden>演示</span>
+          </div>
+          <div class="metric-board" id="metric-board" hidden>
+            <div class="metric-block">
+              <div class="metric-row">
+                <span class="metric-k">分手概率</span>
+                <em class="metric-v accent" id="m-bp">100%</em>
+              </div>
+              <div class="metric-bar" aria-hidden="true"><i id="m-bp-bar"></i></div>
+            </div>
+            <div class="metric-block">
+              <div class="metric-row">
+                <span class="metric-k" id="love-name">对方对我的爱意</span>
+                <em class="metric-v accent" id="m-love">24%</em>
+              </div>
+              <div class="metric-bar soft" aria-hidden="true"><i id="m-love-bar"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <section class="screen active theme-night" id="screen-title">
+          <div class="title-bg" aria-hidden="true"></div>
+          <div class="title-veil" aria-hidden="true"></div>
+          <button class="title-gear" id="btn-title-settings" type="button" aria-label="API 设置">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.07 7.07 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.77 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.12.22.37.3.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96c.23.08.48 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+          </button>
+          <div class="title-stage">
+            <div class="title-eyebrow" id="title-eyebrow">叩君芯模拟器 · 七夕特别版</div>
+            <div class="title-mark" role="img" aria-label="叩君芯"></div>
+            <h1 class="title-name"><span class="hl">分手结局</span>修改器</h1>
+            <div class="title-tagline-wrap">
+              <p class="title-tagline" id="title-tagline">如果那句话没说出口，他们还会分手吗？<br />今天，帮TA改写曾经的选择。</p>
+            </div>
+            <div class="title-actions">
+              <button class="btn primary full" id="btn-title-continue" type="button" hidden>继续游戏</button>
+              <button class="btn primary full" id="btn-title-start" type="button">开始游戏</button>
+            </div>
+            <button class="title-reset" id="btn-title-reset" type="button">重置进度</button>
+            <p class="tiny title-hint" id="title-hint"></p>
+          </div>
+        </section>
+
+        <template id="tpl-screen-prologue">
+        <section class="screen theme-night" id="screen-prologue">
+          <div class="prologue-stage">
+            <div class="prologue-block">
+              <div class="prologue-eyebrow" id="prologue-eyebrow">叩君芯模拟器 · 七夕特别版</div>
+              <div class="prologue-body">
+                <div class="prologue-text" id="prologue-text"></div>
+              </div>
+              <div class="prologue-foot">
+                <div class="prologue-hint" id="prologue-hint">轻触继续</div>
+                <button class="prologue-pick" id="prologue-pick" type="button" hidden>捡起这部手机</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        </template>
+
+        <template id="tpl-screen-launch">
+        <section class="screen theme-paper" id="screen-launch">
+          <div class="launch-hero">
+            <div class="launch-mark">修</div>
+            <h1>接口</h1>
+            <p>未填 Key 可用演示模式。<br />推演仍按同一套规则走。</p>
+          </div>
+          <div class="launch-sheet">
+            <div class="field"><label>平台</label><select id="api-provider"></select></div>
+            <div class="field"><label>模型</label><select id="api-model"></select></div>

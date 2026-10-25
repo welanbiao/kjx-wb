@@ -1,0 +1,217 @@
+{
+  "uncovered": "演示模式暂未覆盖这句改写",
+  "lines": [
+    {
+      "messageId": "n7g",
+      "nodeId": "n7",
+      "soft": {
+        "messageId": "n7g",
+        "tone": "soft",
+        "useOriginal": false,
+        "from": "n7",
+        "next": "n10",
+        "nar": "他没有删人。结还在桌上。",
+        "chat": [
+          {
+            "nodeId": "n7",
+            "id": "n7h",
+            "side": "a",
+            "time": "19:22",
+            "text": "……你真的要介绍吗。"
+          },
+          {
+            "nodeId": "n7",
+            "id": "n7i",
+            "side": "b",
+            "time": "19:22",
+            "text": "嗯。约出来把话说开。"
+          },
+          {
+            "nodeId": "n7",
+            "id": "n7j",
+            "side": "a",
+            "time": "19:23",
+            "text": "谢谢。"
+          },
+          {
+            "nodeId": "n8",
+            "id": "n8a",
+            "side": "a",
+            "time": "00:01",
+            "text": "情人节快乐。今天你没躲我。"
+          },
+          {
+            "nodeId": "n8",
+            "id": "n8b",
+            "side": "b",
+            "time": "00:02",
+            "text": "嗯。礼物还是那支。"
+          },
+          {
+            "nodeId": "n8",
+            "id": "n8c",
+            "side": "a",
+            "time": "00:03",
+            "text": "娟姐……后来呢。"
+          },
+          {
+            "nodeId": "n8",
+            "id": "n8d",
+            "side": "b",
+            "time": "00:03",
+            "text": "见过一面。没吵。"
+          },
+          {
+            "nodeId": "n8",
+            "id": "n8e",
+            "side": "a",
+            "time": "00:04",
+            "text": "那就好。"
+          },
+          {
+            "nodeId": "n9",
+            "id": "n9a",
+            "side": "a",
+            "time": "21:02",
+            "text": "出分了吗。"
+          },
+          {
+            "nodeId": "n9",
+            "id": "n9b",
+            "side": "b",
+            "time": "21:40",
+            "text": "砸了。"
+          },
+          {
+            "nodeId": "n9",
+            "id": "n9c",
+            "side": "a",
+            "time": "21:41",
+            "text": "我在。不追问。"
+          },
+          {
+            "nodeId": "n9",
+            "id": "n9d",
+            "side": "b",
+            "time": "22:00",
+            "text": "……谢。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10a",
+            "side": "a",
+            "time": "23:10",
+            "text": "今天话少。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10b",
+            "side": "b",
+            "time": "23:15",
+            "text": "想静一静。不是不想你。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10c",
+            "side": "a",
+            "time": "23:16",
+            "text": "好。你回来就说一声。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10d",
+            "side": "b",
+            "time": "23:20",
+            "text": "两天。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10e",
+            "side": "a",
+            "time": "23:21",
+            "text": "我等。"
+          },
+          {
+            "nodeId": "n10",
+            "id": "n10f",
+            "side": "b",
+            "time": "23:25",
+            "text": "嗯。"
+          }
+        ],
+        "narrs": [
+          {
+            "nodeId": "n7",
+            "narr": "他答应介绍，没有绝交。"
+          },
+          {
+            "nodeId": "n8",
+            "narr": "情人节。关系仍紧。"
+          },
+          {
+            "nodeId": "n9",
+            "narr": "联考砸了。她没有逼问。"
+          },
+          {
+            "nodeId": "n10",
+            "narr": "他要独处；她答应等。"
+          }
+        ]
+      },
+      "hard": {
+        "messageId": "n7g",
+        "tone": "hard",
+        "useOriginal": true,
+        "from": "n7",
+        "next": "n10",
+        "nar": "他还是删了。后面照旧往下沉。",
+        "chat": [],
+        "narrs": []
+      }
+    },
+    {
+      "messageId": "n15g",
+      "nodeId": "n15",
+      "soft": {
+        "messageId": "n15g",
+        "tone": "soft",
+        "useOriginal": false,
+        "from": "n15",
+        "next": "n15",
+        "nar": "门没有关上。",
+        "chat": [
+          {
+            "nodeId": "n15",
+            "id": "n15h",
+            "side": "a",
+            "time": "20:32",
+            "text": "……真的吗。"
+          },
+          {
+            "nodeId": "n15",
+            "id": "n15i",
+            "side": "a",
+            "time": "20:41",
+            "text": "那我等你想清楚。你别消失。"
+          }
+        ],
+        "narrs": [
+          {
+            "nodeId": "n15",
+            "narr": "他说先别删。她把「好」咽回去了。"
+          }
+        ]
+      },
+      "hard": {
+        "messageId": "n15g",
+        "tone": "hard",
+        "useOriginal": true,
+        "from": "n15",
+        "next": "n15",
+        "nar": "她回了「好」。像盖章。",
+        "chat": [],
+        "narrs": []
+      }
+    }
+  ]
+}

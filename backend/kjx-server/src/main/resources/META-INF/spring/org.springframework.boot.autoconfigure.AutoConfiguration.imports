@@ -1,1 +1,5 @@
 com.koujunxin.server.integration.DomainIntegrationAutoConfiguration
+com.koujunxin.server.billing.BillingSupportAutoConfiguration
+com.koujunxin.server.auth.TianaiCaptchaConfiguration
+com.koujunxin.server.ai.PlatformAiAutoConfiguration
+com.koujunxin.server.ai.OpenAiGatewayAutoConfiguration

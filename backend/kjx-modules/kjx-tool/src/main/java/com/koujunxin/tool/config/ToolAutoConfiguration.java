@@ -85,6 +85,7 @@ public class ToolAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(UiNodeWhitelist.class)
     @ConditionalOnMissingBean(ComposeEngine.class)
     ComposeEngine composeEngine(ObjectProvider<ObjectMapper> objectMapper, BuiltinCatalog builtins, UiNodeWhitelist ui) {
         return new ComposeEngine(mapper(objectMapper), builtins, ui, Clock.systemUTC());

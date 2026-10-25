@@ -27,9 +27,10 @@ public class DualDomainSaTokenConfig implements WebMvcConfigurer {
         registry.addInterceptor(new SaInterceptor(handle -> SaRouter
                         .match("/app/**")
                         .notMatch("/app/auth/**")
+                        .notMatch("/app/billing/payments/notify")
                         .check(r -> StpKit.APP.checkLogin())))
                 .addPathPatterns("/app/**")
-                .excludePathPatterns("/app/auth/**");
+                .excludePathPatterns("/app/auth/**", "/app/billing/payments/notify");
 
         registry.addInterceptor(new SaInterceptor(handle -> StpKit.ADMIN.checkLogin()))
                 .addPathPatterns("/admin-api/**");

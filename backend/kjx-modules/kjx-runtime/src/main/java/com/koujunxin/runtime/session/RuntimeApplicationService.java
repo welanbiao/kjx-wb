@@ -30,6 +30,10 @@ import com.koujunxin.runtime.ledger.CanonicalJson;
 import com.koujunxin.runtime.ledger.SaveSigner;
 import com.koujunxin.runtime.sandbox.HostSanitizer;
 import com.koujunxin.runtime.sandbox.SandboxGuard;
+import com.koujunxin.runtime.breakup.BreakupSessionFactory;
+import com.koujunxin.runtime.breakup.BreakupWorks;
+import com.koujunxin.runtime.dreamphone.DreamPhoneSessionFactory;
+import com.koujunxin.runtime.dreamphone.DreamPhoneWorks;
 import com.koujunxin.runtime.sandbox.SandboxMethods;
 
 /**
@@ -47,6 +51,8 @@ public final class RuntimeApplicationService {
     private final ToolExecutionPort tools;
     private final RuntimeAiPort ai;
     private final TransactionTemplate tx;
+    private final BreakupSessionFactory breakupSessions;
+    private final DreamPhoneSessionFactory dreamSessions;
 
     public RuntimeApplicationService(
             RuntimeStore store,
@@ -58,6 +64,21 @@ public final class RuntimeApplicationService {
             ToolExecutionPort tools,
             RuntimeAiPort ai,
             TransactionTemplate tx) {
+        this(store, sessions, entitlements, works, signer, sandbox, tools, ai, tx, null, null);
+    }
+
+    public RuntimeApplicationService(
+            RuntimeStore store,
+            SessionStateService sessions,
+            EntitlementAccessPort entitlements,
+            WorkRuntimePort works,
+            SaveSigner signer,
+            SandboxGuard sandbox,
+            ToolExecutionPort tools,
+            RuntimeAiPort ai,
+            TransactionTemplate tx,
+            BreakupSessionFactory breakupSessions,
+            DreamPhoneSessionFactory dreamSessions) {
         this.store = store;
         this.sessions = sessions;
         this.entitlements = entitlements;
@@ -68,6 +89,8 @@ public final class RuntimeApplicationService {
         this.tools = tools;
         this.ai = ai;
         this.tx = tx;
+        this.breakupSessions = breakupSessions;
+        this.dreamSessions = dreamSessions;
     }
 
     private <T> T inTx(Supplier<T> action) {
@@ -78,18 +101,53 @@ public final class RuntimeApplicationService {
     }
 
     public Map<String, Object> createSession(long accountId, String workCode) {
-        requireEntitlement(accountId, workCode);
+        return createSession(accountId, workCode, false);
+    }
+
+    public Map<String, Object> createSession(long accountId, String workCode, boolean trial) {
+        if (trial && !BreakupWorks.is(workCode) && !DreamPhoneWorks.is(workCode)) {
+            throw RuntimeFailure.badRequest("WORK_NOT_SUPPORTED", "trial is not open for this work");
+        } else if (!trial) {
+            requireEntitlement(accountId, workCode);
+        }
         return inTx(() -> {
+            if (BreakupWorks.is(workCode) || DreamPhoneWorks.is(workCode)) {
+                for (SessionRecord existing : store.listSessions(accountId, workCode)) {
+                    if (SessionStateService.ACTIVE.equals(existing.status())
+                            && BreakupWorks.trialPayload(existing.payloadJson()) == trial) {
+                        return sessionView(existing, true);
+                    }
+                }
+                String payload;
+                if (BreakupWorks.is(workCode)) {
+                    if (breakupSessions == null) {
+                        throw RuntimeFailure.badRequest("WORK_NOT_SUPPORTED", "breakup session factory missing");
+                    }
+                    payload = breakupSessions.initialPayload(trial);
+                } else {
+                    if (dreamSessions == null) {
+                        throw RuntimeFailure.badRequest("WORK_NOT_SUPPORTED", "dream-phone session factory missing");
+                    }
+                    payload = dreamSessions.initialPayload(trial);
+                }
+                SessionRecord row = sessions.create(accountId, workCode, payload, "1");
+                return sessionView(row, true);
+            }
             SessionRecord row = sessions.create(accountId, workCode);
             return sessionView(row, true);
         });
     }
 
     public List<Map<String, Object>> listSessions(long accountId, String workCode) {
-        requireEntitlement(accountId, workCode);
+        boolean entitled = hasEntitlement(accountId, workCode);
         List<Map<String, Object>> out = new ArrayList<>();
         for (SessionRecord row : store.listSessions(accountId, workCode)) {
-            out.add(sessionView(row, false));
+            if (entitled || BreakupWorks.trialPayload(row.payloadJson())) {
+                out.add(sessionView(row, false));
+            }
+        }
+        if (!entitled && out.isEmpty() && !BreakupWorks.is(workCode) && !DreamPhoneWorks.is(workCode)) {
+            requireEntitlement(accountId, workCode);
         }
         return out;
     }
@@ -97,9 +155,9 @@ public final class RuntimeApplicationService {
     public Map<String, Object> getSession(long accountId, String sessionId, String workCode) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
         SessionStateSnapshot snapshot = sessions.load(ref);
         SessionRecord row = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, row);
         Map<String, Object> view = sessionView(row, true);
         view.put("stage", snapshot.stage());
         view.put("schemaVersion", snapshot.schemaVersion());
@@ -110,7 +168,9 @@ public final class RuntimeApplicationService {
     public Map<String, Object> apply(long accountId, String sessionId, String workCode, StateMutation mutation) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
+        SessionRecord current = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, current);
+        rejectTrialMix(current, mutation);
         return inTx(() -> {
             SessionStateSnapshot snapshot = sessions.apply(ref, mutation);
             SessionRecord row = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
@@ -124,7 +184,8 @@ public final class RuntimeApplicationService {
     public Map<String, Object> endSession(long accountId, String sessionId, String workCode) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
+        SessionRecord owned = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, owned);
         SessionRecord row = inTx(() -> sessions.end(accountId, ref));
         return sessionView(row, false);
     }
@@ -133,9 +194,24 @@ public final class RuntimeApplicationService {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
         SessionRecord row = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        boolean trial = BreakupWorks.trialPayload(row.payloadJson());
         boolean entitled = hasEntitlement(accountId, workCode);
+        if (!trial && !entitled && BreakupWorks.is(workCode)) {
+            Map<String, Object> gatedBody = new LinkedHashMap<>();
+            gatedBody.put("sessionId", sessionId);
+            gatedBody.put("workCode", workCode);
+            gatedBody.put("form", row.form());
+            gatedBody.put("stage", row.stage());
+            gatedBody.put("gated", true);
+            gatedBody.put("layoutJson", "{}");
+            gatedBody.put("tokensJson", "{}");
+            gatedBody.put("nodesJson", "[]");
+            gatedBody.put("assets", Map.of());
+            return gatedBody;
+        }
+        boolean disclose = entitled || trial;
         List<String> reached = StageDisclosure.reachedFrom(row.payloadJson(), row.stage());
-        StageContent content = disclosure.disclose(entitled, workCode, contentVersion(row), row.stage(), reached);
+        StageContent content = disclosure.disclose(disclose, workCode, contentVersion(row), row.stage(), reached);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("sessionId", sessionId);
         body.put("workCode", workCode);
@@ -187,7 +263,8 @@ public final class RuntimeApplicationService {
             Integer expectedVersion) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
+        SessionRecord playable = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, playable);
         String resolvedSlot = slot == null || slot.isBlank() ? "auto" : slot.trim();
         return inTx(() -> {
             SessionRecord session = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
@@ -255,7 +332,8 @@ public final class RuntimeApplicationService {
     public List<Map<String, Object>> listSaves(long accountId, String sessionId, String workCode) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
+        SessionRecord listed = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, listed);
         List<Map<String, Object>> out = new ArrayList<>();
         for (SaveRecord row : store.listSaves(accountId, workCode, sessionId)) {
             signer.verify(
@@ -283,7 +361,8 @@ public final class RuntimeApplicationService {
             String payloadJson) {
         SessionRef ref = new SessionRef(sessionId, workCode);
         sessions.requireOwner(accountId, ref);
-        requireEntitlement(accountId, workCode);
+        SessionRecord hosted = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, hosted);
         sandbox.require(nonce, iframeOrigin, method, accountId, sessionId, workCode);
         String safePayload = HostSanitizer.sanitizeJson(payloadJson);
         String result = switch (method) {
@@ -310,8 +389,13 @@ public final class RuntimeApplicationService {
         if (nonce != null && !nonce.isBlank()) {
             return hostInvoke(accountId, sessionId, workCode, nonce, iframeOrigin, "tools.invoke", payloadJson);
         }
-        sessions.requireOwner(accountId, new SessionRef(sessionId, workCode));
-        requireEntitlement(accountId, workCode);
+        SessionRef toolRef = new SessionRef(sessionId, workCode);
+        sessions.requireOwner(accountId, toolRef);
+        SessionRecord toolRow = store.findSession(sessionId).orElseThrow(RuntimeFailure::crossSession);
+        requirePlayAccess(accountId, workCode, toolRow);
+        if (BreakupWorks.trialPayload(toolRow.payloadJson())) {
+            throw RuntimeFailure.forbidden("TRIAL_TOOL_BLOCKED", "trial sessions do not call live tools");
+        }
         String result = invokeTool(accountId, sessionId, workCode, HostSanitizer.sanitizeJson(payloadJson));
         return Map.of("ok", true, "method", "tools.invoke", "payloadJson", HostSanitizer.sanitizeJson(result));
     }
@@ -385,6 +469,32 @@ public final class RuntimeApplicationService {
         entitlements.requireEntitlement(accountId, workCode);
     }
 
+    private void requirePlayAccess(long accountId, String workCode, SessionRecord row) {
+        if ((BreakupWorks.is(workCode) || DreamPhoneWorks.is(workCode)) && BreakupWorks.trialPayload(row.payloadJson())) {
+            return;
+        }
+        requireEntitlement(accountId, workCode);
+    }
+
+    private static void rejectTrialMix(SessionRecord row, StateMutation mutation) {
+        boolean currentTrial = BreakupWorks.trialPayload(row.payloadJson());
+        if (!"REPLACE".equals(mutation.type()) && !"PATCH".equals(mutation.type()) && !"TOOL_PATCH".equals(mutation.type())) {
+            return;
+        }
+        boolean nextTrial = BreakupWorks.trialPayload(mutation.payloadJson());
+        if ("PATCH".equals(mutation.type())) {
+            JsonNode patch = CanonicalJson.parse(mutation.payloadJson());
+            if (patch.has("trial")) {
+                nextTrial = patch.path("trial").asBoolean(currentTrial);
+            } else {
+                nextTrial = currentTrial;
+            }
+        }
+        if (currentTrial != nextTrial) {
+            throw RuntimeFailure.forbidden("TRIAL_ISOLATION", "trial saves cannot enter the full session");
+        }
+    }
+
     private boolean hasEntitlement(long accountId, String workCode) {
         try {
             entitlements.requireEntitlement(accountId, workCode);
@@ -440,6 +550,7 @@ public final class RuntimeApplicationService {
         view.put("checksum", row.checksum());
         view.put("status", row.status());
         view.put("version", row.version());
+        view.put("trial", BreakupWorks.trialPayload(row.payloadJson()));
         if (includePayload) {
             view.put("payloadJson", row.payloadJson());
         }

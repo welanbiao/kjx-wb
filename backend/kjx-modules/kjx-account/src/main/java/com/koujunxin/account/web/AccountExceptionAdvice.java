@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.koujunxin.account.api.AccountException;
 
-@RestControllerAdvice(basePackages = "com.koujunxin.account")
+@RestControllerAdvice(basePackages = {"com.koujunxin.account", "com.koujunxin.server.account"})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class AccountExceptionAdvice {
 

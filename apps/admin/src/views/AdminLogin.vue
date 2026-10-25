@@ -1,5 +1,48 @@
 <template>
-  <div class="login">
+  <div
+    v-if="embedded"
+    class="embed"
+  >
+    <el-form
+      label-position="top"
+      @submit.prevent="onSubmit"
+    >
+      <el-form-item
+        label="账号"
+        required
+      >
+        <el-input
+          v-model="form.username"
+          autocomplete="username"
+          aria-label="账号"
+        />
+      </el-form-item>
+      <el-form-item
+        label="密码"
+        required
+      >
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          autocomplete="current-password"
+          aria-label="密码"
+        />
+      </el-form-item>
+      <el-button
+        type="primary"
+        native-type="submit"
+        :loading="busy"
+        style="width: 100%"
+      >
+        登录
+      </el-button>
+    </el-form>
+  </div>
+  <div
+    v-else-if="standalone"
+    class="login"
+  >
     <el-card class="card">
       <p class="eyebrow">
         叩君芯 · 分幕通行证
@@ -55,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { loginAdmin } from "@/api/auth";
@@ -70,12 +113,34 @@ const form = reactive({
   username: "",
   password: "",
 });
+const embedded = computed(() => route.query.embed === "1");
+const standalone = !import.meta.env.BASE_URL.startsWith("/admin");
+
+onMounted(() => {
+  if (embedded.value) {
+    document.body.style.background = "#faedd1";
+    document.documentElement.style.background = "#faedd1";
+  }
+});
+
+function deskUrl(redirect: string): string {
+  if (redirect.startsWith("/admin/")) {
+    return redirect;
+  }
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const path = redirect.startsWith("/") ? redirect : `/${redirect}`;
+  return `${base}${path}`;
+}
 
 async function onSubmit() {
   busy.value = true;
   try {
     await loginAdmin(form.username.trim(), form.password);
     const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/dashboard";
+    if (embedded.value) {
+      (window.top ?? window).location.assign(deskUrl(redirect));
+      return;
+    }
     await router.replace(redirect);
   } catch (error) {
     const failure = formatRequestFailure(error);
@@ -98,6 +163,9 @@ async function onSubmit() {
 }
 .card {
   width: min(440px, 100%);
+}
+.embed {
+  background: #faedd1;
 }
 .eyebrow {
   margin: 0 0 4px;

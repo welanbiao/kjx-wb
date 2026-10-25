@@ -19,4 +19,8 @@ export function badRequest(requestId: string, msg: string): Response {
   return fail(requestId, 400, msg, 400);
 }
 
+export function forbidden(requestId: string, msg: string): Response {
+  return fail(requestId, 403, msg, 403);
+}
+
 export { ok };

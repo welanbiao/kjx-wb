@@ -1,6 +1,12 @@
 import { ERROR_MESSAGES } from "@/lib/errors";
 import { createMockCaptcha, verifyMockCaptchaTrack } from "@/lib/mock/captcha";
-import { badRequest, businessError, notFound, ok, unauthorized } from "@/lib/mock/http";
+import { badRequest, businessError, forbidden, notFound, ok, unauthorized } from "@/lib/mock/http";
+import {
+  createBreakupSession,
+  handleBreakupMock,
+  sessionView,
+} from "@/lib/mock/breakup";
+import { createDreamPhoneSession, DREAM_CODE, handleDreamPhoneMock } from "@/lib/mock/dream-phone";
 import {
   daysFromNowIso,
   entryUrlFor,
@@ -232,6 +238,18 @@ export async function handleMock(
     return { response: ok(requestId, generated.challenge) };
   }
 
+  if (pathname === "/app/auth/captcha/check" && method === "POST") {
+    const body = await jsonBody(request);
+    const captchaId = str(body.captchaId);
+    const record = store.captchas.get(captchaId);
+    if (!verifyMockCaptchaTrack(record, body.captchaData)) {
+      store.captchas.delete(captchaId);
+      return { response: badRequest(requestId, "图形验证码错误或已过期") };
+    }
+    store.captchas.set(captchaId, { ...record!, passed: true });
+    return { response: ok(requestId, { passed: true }) };
+  }
+
   if (pathname === "/app/auth/send-code" && method === "POST") {
     const body = await jsonBody(request);
     const phone = str(body.phone);
@@ -242,7 +260,9 @@ export async function handleMock(
     }
     const record = store.captchas.get(captchaId);
     store.captchas.delete(captchaId);
-    if (!verifyMockCaptchaTrack(record, body.captchaData)) {
+    if (record?.passed) {
+      // 松手已校验通过
+    } else if (!verifyMockCaptchaTrack(record, body.captchaData)) {
       return { response: badRequest(requestId, "图形验证码错误或已过期") };
     }
     store.sms.set(smsKey(phone, scene), {
@@ -411,6 +431,39 @@ export async function handleMock(
       account!.avatar = body.avatar.slice(0, 512);
     }
     return { response: ok(requestId, toProfile(account!)) };
+  }
+
+  if (pathname === "/app/account/ai-settings" && method === "GET") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const saved = store.aiSettings.get(account!.id);
+    return {
+      response: ok(requestId, {
+        configured: Boolean(saved),
+        baseUrl: saved?.baseUrl ?? "",
+        model: saved?.model ?? "",
+      }),
+    };
+  }
+
+  if (pathname === "/app/account/ai-settings" && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const body = await jsonBody(request);
+    const baseUrl = str(body.baseUrl);
+    const apiKey = str(body.apiKey);
+    const model = str(body.model);
+    if (!baseUrl || !apiKey || !model) {
+      return { response: badRequest(requestId, "请填写 Base URL、API Key 与 Model") };
+    }
+    store.aiSettings.set(account!.id, { baseUrl, apiKey, model });
+    return {
+      response: ok(requestId, { configured: true, baseUrl, model }),
+    };
   }
 
   if (pathname === "/app/account/password" && method === "PUT") {
@@ -751,6 +804,154 @@ export async function handleMock(
     };
     rememberIdempotency("unlock", workId, idempotencyKey!, data);
     return { response: ok(requestId, data) };
+  }
+
+  const purchaseMatch = pathname.match(/^\/app\/works\/([a-z0-9][a-z0-9-]{1,62})\/purchase$/);
+  if (purchaseMatch && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const workCode = purchaseMatch[1];
+    if (workCode !== "breakup-editor" && workCode !== "dream-phone") {
+      return { response: badRequest(requestId, "该作品不支持页面购买") };
+    }
+    const work = store.works.find((item) => item.workCode === workCode);
+    const existing = store.entitlements.find(
+      (item) => item.accountId === account!.id && item.workCode === workCode,
+    );
+    const body = { workCode, source: "purchase" };
+    const workId = work?.workCode ?? workCode;
+    const gate = idempotencyResult("page_purchase", workId, idempotencyKey, body, requestId);
+    if (gate !== "fresh") {
+      return { response: gate };
+    }
+    if (existing) {
+      const member = store.members.find((item) => item.boundAccountId === account!.id);
+      const data = {
+        workCode,
+        unlockedCount: member?.unlockedCount ?? 0,
+        remainCount: member?.remainCount ?? 0,
+        entryUrl: existing.entryUrl,
+        alreadyUnlocked: true,
+        source: "purchase",
+      };
+      rememberIdempotency("page_purchase", workId, idempotencyKey!, data);
+      return { response: okAlready(requestId, data) };
+    }
+    if (account!.status === 3) {
+      return { response: businessError(requestId, 1014) };
+    }
+    if (!work || (work.status !== "PUBLISHED" && work.status !== "GRAY")) {
+      return { response: businessError(requestId, 1008) };
+    }
+    const member = store.members.find((item) => item.boundAccountId === account!.id);
+    const entryUrl = entryUrlFor(workCode);
+    store.entitlements.push({
+      accountId: account!.id,
+      workCode,
+      name: work.name,
+      coverUrl: work.coverUrl,
+      workType: work.workType,
+      workStatus: work.status,
+      unlockedAt: nowIso(),
+      source: "purchase",
+      entryUrl,
+    });
+    const data = {
+      workCode,
+      unlockedCount: member?.unlockedCount ?? 0,
+      remainCount: member?.remainCount ?? 0,
+      entryUrl,
+      alreadyUnlocked: false,
+      source: "purchase",
+    };
+    rememberIdempotency("page_purchase", workId, idempotencyKey!, data);
+    return { response: ok(requestId, data) };
+  }
+
+  if (account && pathname.startsWith("/app/sessions")) {
+    const breakup = await handleBreakupMock(request, pathname, account.id, requestId);
+    if (breakup) {
+      return { response: breakup };
+    }
+    const dream = await handleDreamPhoneMock(request, pathname, account.id, requestId);
+    if (dream) {
+      return { response: dream };
+    }
+  }
+
+  if (pathname === "/app/sessions" && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const body = await jsonBody(request);
+    const workCode = str(body.workCode);
+    const trial = Boolean(body.trial);
+    if (workCode !== "breakup-editor" && workCode !== DREAM_CODE) {
+      return { response: notFound(requestId, "作品未接入") };
+    }
+    if (!trial) {
+      const entitled = store.entitlements.some(
+        (item) => item.accountId === account!.id && item.workCode === workCode,
+      );
+      if (!entitled) {
+        return { response: forbidden(requestId, "entitlement required") };
+      }
+    }
+    const row =
+      workCode === DREAM_CODE
+        ? createDreamPhoneSession(account!.id, trial)
+        : createBreakupSession(account!.id, trial);
+    return { response: ok(requestId, sessionView(row, true)) };
+  }
+
+  if (pathname === "/app/sessions" && method === "GET") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const workCode = url.searchParams.get("workCode") ?? "";
+    const entitled = store.entitlements.some(
+      (item) => item.accountId === account!.id && item.workCode === workCode,
+    );
+    const list = store.runtimeSessions.filter(
+      (item) =>
+        item.accountId === account!.id &&
+        item.workCode === workCode &&
+        (entitled || item.trial),
+    );
+    if (!entitled && list.length === 0 && workCode !== "breakup-editor" && workCode !== DREAM_CODE) {
+      return { response: forbidden(requestId, "entitlement required") };
+    }
+    return { response: ok(requestId, list.map((item) => sessionView(item, false))) };
+  }
+
+  if (pathname === "/app/saves" && method === "POST") {
+    const denied = requireAccount(account, requestId);
+    if (denied) {
+      return { response: denied };
+    }
+    const body = await jsonBody(request);
+    const sessionId = str(body.sessionId);
+    const row = store.runtimeSessions.find(
+      (item) => item.sessionId === sessionId && item.accountId === account!.id,
+    );
+    if (!row) {
+      return { response: forbidden(requestId, "session not owned") };
+    }
+    return {
+      response: ok(requestId, {
+        sessionId: row.sessionId,
+        workCode: row.workCode,
+        slot: str(body.slot) || "auto",
+        checksum: row.checksum,
+        schemaVersion: row.schemaVersion,
+        version: row.version,
+        stateJson: JSON.stringify(row.payload),
+      }),
+    };
   }
 
   if (pathname === "/app/entitlements" && method === "GET") {

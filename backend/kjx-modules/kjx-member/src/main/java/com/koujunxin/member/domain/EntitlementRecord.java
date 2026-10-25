@@ -19,4 +19,5 @@ public record EntitlementRecord(
 
     public static final String USER = "user";
     public static final String OFFICIAL_ADD = "official_add";
+    public static final String PURCHASE = "purchase";
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import * as Label from "@radix-ui/react-label";
 import { cloneElement, isValidElement, type InputHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 type FieldProps = {
@@ -23,7 +24,7 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
       : children;
   return (
     <div className="kjx-field">
-      <label htmlFor={id}>{label}</label>
+      <Label.Root htmlFor={id}>{label}</Label.Root>
       {control}
       {hint ? (
         <p id={hintId} className="kjx-hint">

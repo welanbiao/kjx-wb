@@ -30,7 +30,9 @@
         "unlock",
         "work",
         "notification",
-        "analytics"
+        "analytics",
+        "billing",
+        "payment"
       ]
     },
     "aggregateId": {

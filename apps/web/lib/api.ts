@@ -48,11 +48,15 @@ export async function apiFetch<T>(
 ): Promise<ApiEnvelope<T>> {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const csrf = await ensureCsrf();
-  const { idempotencyKey, headers, ...rest } = init ?? {};
+  const { idempotencyKey, headers: initHeaders, ...rest } = init ?? {};
+  const headers = buildHeaders(initHeaders, { idempotencyKey, csrf });
+  if (rest.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   const response = await fetch(`${getBffBaseUrl()}${normalized}`, {
     ...rest,
     credentials: "include",
-    headers: buildHeaders(headers, { idempotencyKey, csrf }),
+    headers,
   });
   let payload: ApiEnvelope<T> | null = null;
   try {
